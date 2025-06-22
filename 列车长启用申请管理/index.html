@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>列车长管理系统</title>
+  <!-- 
+    使用构建工具生成的优化CSS文件
+    如需修改样式:
+    1. 编辑 src/input.css
+    2. 运行 npm run build:css
+  -->
+  <link href="dist/output.css" rel="stylesheet">
+  <!-- 使用CDN版本 (已禁用)
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="tailwind-config.js"></script>
+  -->
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Excel文件处理库 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    .font-geist-mono {
+      font-family: 'SF Mono', SFMono-Regular, ui-monospace, Menlo, Monaco, monospace;
+    }
+    
+    body {
+      background-color: #fafafa;
+      color: #1a1a1a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    
+    .glass-effect {
+      backdrop-filter: blur(8px);
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .nav-item {
+      transition: all 0.2s ease;
+      border-radius: 6px;
+    }
+    
+    .nav-item:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .nav-item.active {
+      background-color: rgba(0, 0, 0, 0.08);
+      font-weight: 500;
+    }
+    
+    .card {
+      border-radius: 10px;
+      background-color: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    
+    .card:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    button, .button {
+      transition: all 0.2s ease;
+    }
+    
+    button:hover, .button:hover {
+      transform: translateY(-1px);
+    }
+    
+    button:active, .button:active {
+      transform: translateY(1px);
+    }
+    
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    
+    th, td {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .status-official {
+      background-color: rgba(52, 199, 89, 0.1);
+      color: rgb(22, 128, 46);
+    }
+    
+    .status-temporary {
+      background-color: rgba(255, 149, 0, 0.1);
+      color: rgb(177, 90, 0);
+    }
+    
+    .status-reserve {
+      background-color: rgba(0, 122, 255, 0.1);
+      color: rgb(0, 64, 221);
+    }
+    
+    .status-dismissed {
+      background-color: rgba(255, 59, 48, 0.1);
+      color: rgb(215, 0, 21);
+    }
+    
+    .input-field {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      padding: 8px 12px;
+      transition: all 0.2s ease;
+    }
+    
+    .input-field:focus {
+      border-color: rgba(0, 0, 0, 0.3);
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+      outline: none;
+    }
+    
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      background-color: rgba(0, 0, 0, 0.05);
+      border-radius: 4px;
+      font-size: 12px;
+      margin-right: 4px;
+    }
+    
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px;
+      padding-right: 30px;
+    }
+    
+    .text-shadow {
+      text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-gray-100 h-screen flex flex-col">
+      <div class="p-4 border-b border-gray-100">
+        <h1 class="text-xl font-semibold">列车长管理系统</h1>
+      </div>
+      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+        <a href="#dashboard" class="nav-item active flex items-center p-3 text-gray-800" data-section="dashboard">
+          <i class="ri-dashboard-line mr-3"></i>
+          <span>仪表盘</span>
+        </a>
+        <a href="#conductor-list" class="nav-item flex items-center p-3 text-gray-800" data-section="conductor-list">
+          <i class="ri-user-line mr-3"></i>
+          <span>列车长信息管理</span>
+        </a>
+        <a href="#application-management" class="nav-item flex items-center p-3 text-gray-800" data-section="application-management">
+          <i class="ri-file-list-line mr-3"></i>
+          <span>申请管理</span>
+        </a>
+        <a href="#statistics" class="nav-item flex items-center p-3 text-gray-800" data-section="statistics">
+          <i class="ri-bar-chart-line mr-3"></i>
+          <span>统计与报表</span>
+        </a>
+        <a href="#settings" class="nav-item flex items-center p-3 text-gray-800" data-section="settings">
+          <i class="ri-settings-line mr-3"></i>
+          <span>系统设置</span>
+        </a>
+      </nav>
+      <div class="p-4 text-xs text-gray-500 border-t border-gray-100">
+        版本 1.0.0
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-gray-50">
+      <!-- Dashboard Section -->
+      <section id="dashboard" class="section p-6 space-y-6">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold">仪表盘</h2>
+          <div class="text-sm text-gray-500 font-geist-mono" id="current-date"></div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="card p-6">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-500 text-sm">正式列车长</h3>
+                <p class="text-3xl font-semibold mt-2" id="official-count">0</p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
+                <i class="ri-user-star-line text-green-600"></i>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card p-6">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-500 text-sm">临时列车长</h3>
+                <p class="text-3xl font-semibold mt-2" id="temporary-count">0</p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center">
+                <i class="ri-time-line text-orange-600"></i>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card p-6">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-500 text-sm">后备列车长</h3>
+                <p class="text-3xl font-semibold mt-2" id="reserve-count">0</p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                <i class="ri-user-follow-line text-blue-600"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <div class="card p-6">
+            <h3 class="text-lg font-medium mb-4">列车长状态分布</h3>
+            <div class="h-64">
+              <canvas id="statusChart"></canvas>
+            </div>
+          </div>
+          
+          <div class="card p-6">
+            <h3 class="text-lg font-medium mb-4">部门分布</h3>
+            <div class="h-64">
+              <canvas id="departmentChart"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card p-6 mt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium">近期申请</h3>
+            <a href="#application-management" class="text-sm text-blue-600 hover:underline">查看全部</a>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">申请类型</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">部门</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">工号</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">姓名</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">申请日期</th>
+                </tr>
+              </thead>
+              <tbody id="recent-applications"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Conductor List Section -->
+      <section id="conductor-list" class="section p-6 space-y-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold">列车长信息管理</h2>
+          <div class="flex space-x-3">
+            <button id="import-conductors-btn" class="button bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-md flex items-center">
+              <i class="ri-file-upload-line mr-2"></i> 导入
+            </button>
+            <button id="add-conductor-btn" class="button bg-black text-white px-4 py-2 rounded-md flex items-center">
+              <i class="ri-add-line mr-2"></i> 添加列车长
+            </button>
+          </div>
+        </div>
+        
+        <div class="card p-6">
+          <div class="flex flex-col md:flex-row justify-between mb-6 space-y-4 md:space-y-0">
+            <div class="flex space-x-4">
+              <div class="relative">
+                <input type="text" id="conductor-search" placeholder="搜索工号或姓名" class="input-field pr-10 w-64">
+                <i class="ri-search-line absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              </div>
+              <select id="department-filter" class="input-field w-40">
+                <option value="">所有部门</option>
+                <!-- 由JavaScript动态填充 -->
+              </select>
+            </div>
+            <div class="flex space-x-4">
+              <select id="status-filter" class="input-field w-40">
+                <option value="">所有状态</option>
+                <option value="正式启用">正式启用</option>
+                <option value="临时启用">临时启用</option>
+                <option value="后备">后备</option>
+                <option value="免职">免职</option>
+              </select>
+              <button id="export-conductors" class="border border-gray-200 rounded-md px-4 py-2 text-sm flex items-center">
+                <i class="ri-download-line mr-2"></i> 导出
+              </button>
+            </div>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">工号</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">姓名</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">部门</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">状态</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">备注</th>
+                  <th class="text-right py-3 px-4 text-sm font-medium text-gray-500">操作</th>
+                </tr>
+              </thead>
+              <tbody id="conductor-list-body"></tbody>
+            </table>
+          </div>
+          
+          <div class="mt-4 flex justify-between items-center text-sm text-gray-500">
+            <div>共 <span id="total-conductors">0</span> 名列车长</div>
+            <div class="flex space-x-2">
+              <button id="prev-page" class="px-3 py-1 rounded border border-gray-200" disabled>
+                <i class="ri-arrow-left-s-line"></i>
+              </button>
+              <div id="page-info" class="px-3 py-1">第 <span id="current-page">1</span> 页 / 共 <span id="total-pages">1</span> 页</div>
+              <button id="next-page" class="px-3 py-1 rounded border border-gray-200" disabled>
+                <i class="ri-arrow-right-s-line"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Application Management Section -->
+      <section id="application-management" class="section p-6 space-y-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold">申请管理</h2>
+          <div class="flex space-x-3">
+            <button id="import-applications" class="button bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-md flex items-center">
+              <i class="ri-file-upload-line mr-2"></i> 导入
+            </button>
+            <button id="export-applications" class="button bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-md flex items-center">
+              <i class="ri-download-line mr-2"></i> 导出
+            </button>
+            <button id="create-official-application" class="button bg-black text-white px-4 py-2 rounded-md flex items-center">
+              <i class="ri-file-add-line mr-2"></i> 正式启用申请
+            </button>
+            <button id="create-temporary-application" class="button bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-md flex items-center">
+              <i class="ri-file-add-line mr-2"></i> 临时启用申请
+            </button>
+            <button id="create-dismissal-application" class="button bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-md flex items-center">
+              <i class="ri-file-add-line mr-2"></i> 免职申请
+            </button>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="border-b border-gray-100">
+            <nav class="flex">
+              <button class="application-tab py-4 px-6 border-b-2 border-black font-medium" data-tab="all">
+                所有申请
+              </button>
+              <button class="application-tab py-4 px-6 border-b-2 border-transparent text-gray-500" data-tab="official">
+                正式启用
+              </button>
+              <button class="application-tab py-4 px-6 border-b-2 border-transparent text-gray-500" data-tab="temporary">
+                临时启用
+              </button>
+              <button class="application-tab py-4 px-6 border-b-2 border-transparent text-gray-500" data-tab="dismissal">
+                免职
+              </button>
+            </nav>
+          </div>
+          
+          <div class="p-6">
+            <div class="flex flex-wrap justify-between items-center mb-4">
+              <div class="flex items-center">
+                <input type="text" id="application-search" class="input-field pr-10 w-64 text-sm" placeholder="搜索姓名或工号...">
+                <select id="application-department-filter" class="ml-2 input-field w-40 text-sm">
+                  <option value="">所有部门</option>
+                  <!-- 由JavaScript动态填充 -->
+                </select>
+              </div>
+              <div class="flex items-center mt-2 sm:mt-0">
+                <input type="date" id="date-from" class="input-field px-4 py-2 text-sm">
+                <span class="mx-2">至</span>
+                <input type="date" id="date-to" class="input-field px-4 py-2 text-sm">
+              </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+              <table class="min-w-full bg-white">
+                <thead class="bg-gray-50 text-gray-600 text-sm">
+                  <tr>
+                    <th class="py-3 px-4 text-left">申请类型</th>
+                    <th class="py-3 px-4 text-left">工号</th>
+                    <th class="py-3 px-4 text-left">姓名</th>
+                    <th class="py-3 px-4 text-left">部门</th>
+                    <th class="py-3 px-4 text-left">申请日期</th>
+                    <th class="py-3 px-4 text-left">状态</th>
+                    <th class="py-3 px-4 text-right">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="applications-table-body">
+                  <!-- 申请记录将通过JavaScript动态生成 -->
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="flex justify-between items-center mt-4">
+              <div>
+                共 <span id="total-applications">0</span> 条记录
+              </div>
+              <div class="flex items-center space-x-2">
+                <button id="application-prev-page" class="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                  上一页
+                </button>
+                <span>
+                  <span id="application-current-page">1</span> / <span id="application-total-pages">1</span>
+                </span>
+                <button id="application-next-page" class="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                  下一页
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Statistics Section -->
+      <section id="statistics" class="section p-6 space-y-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold">统计与报表</h2>
+          <div class="flex space-x-3">
+            <button id="export-statistics" class="button bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-md flex items-center">
+              <i class="ri-download-line mr-2"></i> 导出报表
+            </button>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="card p-6">
+            <h3 class="text-lg font-medium mb-4">部门列车长状态分布</h3>
+            <div class="flex space-x-4 mb-4">
+              <select id="stats-department-filter" class="input-field w-40">
+                <option value="">所有部门</option>
+                <!-- 由JavaScript动态填充 -->
+              </select>
+            </div>
+            <div class="h-64">
+              <canvas id="departmentStatusChart"></canvas>
+            </div>
+          </div>
+          
+          <div class="card p-6">
+            <h3 class="text-lg font-medium mb-4">人员配置对比</h3>
+            <div class="flex space-x-4 mb-4">
+              <button id="edit-quota-btn" class="border border-gray-200 rounded-md px-3 py-1 text-sm flex items-center">
+                <i class="ri-edit-line mr-1"></i> 编辑定员
+              </button>
+            </div>
+            <div class="h-64">
+              <canvas id="quotaComparisonChart"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card p-6">
+          <h3 class="text-lg font-medium mb-4">申请趋势（近6个月）</h3>
+          <div class="h-64">
+            <canvas id="applicationTrendChart"></canvas>
+          </div>
+        </div>
+        
+        <div class="card p-6">
+          <h3 class="text-lg font-medium mb-4">部门统计数据</h3>
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">部门</th>
+                  <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">定员数</th>
+                  <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">正式启用</th>
+                  <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">临时启用</th>
+                  <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">后备</th>
+                  <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">空缺数</th>
+                  <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">空缺率</th>
+                </tr>
+              </thead>
+              <tbody id="department-stats-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings Section -->
+      <section id="settings" class="section p-6 space-y-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold">系统设置</h2>
+        </div>
+        
+        <!-- 数据备份与恢复卡片 -->
+        <div class="card p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-medium">数据备份与恢复</h3>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="flex flex-col space-y-2">
+              <label class="block text-sm font-medium text-gray-700">系统数据备份</label>
+              <p class="text-sm text-gray-500">导出当前系统的所有数据，包括部门、列车长和申请记录等</p>
+              <div>
+                <button id="export-backup-btn" class="button bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center border border-green-700 shadow-sm font-medium text-shadow">
+                  <i class="ri-download-line mr-2"></i> <span class="text-[15px]">导出备份数据</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="border-t border-gray-100 my-4"></div>
+            
+            <div class="flex flex-col space-y-2">
+              <label class="block text-sm font-medium text-gray-700">数据恢复</label>
+              <p class="text-sm text-gray-500">从备份文件导入数据，将覆盖当前系统中的所有数据</p>
+              <div>
+                <input type="file" id="import-file-input" accept=".json" class="hidden">
+                <button id="import-backup-btn" class="button bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center border border-blue-700 shadow-sm font-medium text-shadow">
+                  <i class="ri-upload-line mr-2"></i> <span class="text-[15px]">导入备份数据</span>
+                </button>
+              </div>
+              
+              <div id="import-status" class="mt-3 px-4 py-3 bg-gray-50 rounded-md hidden"></div>
+              <div id="import-details" class="text-sm text-gray-600 hidden"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 部门管理卡片 -->
+        <div class="card p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-medium">部门管理</h3>
+            <div class="flex space-x-3">
+              <button id="add-department-btn" class="button bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-md flex items-center">
+                <i class="ri-add-line mr-2"></i> 添加部门
+              </button>
+              <button id="batch-add-departments-btn" class="button bg-black text-white px-4 py-2 rounded-md flex items-center">
+                <i class="ri-file-list-line mr-2"></i> 批量添加
+              </button>
+            </div>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">部门编号</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">部门名称</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">所属单位</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">备注</th>
+                  <th class="text-right py-3 px-4 text-sm font-medium text-gray-500">操作</th>
+                </tr>
+              </thead>
+              <tbody id="department-list-body"></tbody>
+            </table>
+          </div>
+          
+          <!-- 分页控件 -->
+          <div class="mt-4 flex justify-between items-center text-sm text-gray-500">
+            <div>共 <span id="total-departments">0</span> 个部门</div>
+            <div class="flex space-x-2">
+              <button id="department-prev-page" class="px-3 py-1 rounded border border-gray-200" disabled>
+                <i class="ri-arrow-left-s-line"></i>
+              </button>
+              <div id="department-page-info" class="px-3 py-1">第 <span id="department-current-page">1</span> 页 / 共 <span id="department-total-pages">1</span> 页</div>
+              <button id="department-next-page" class="px-3 py-1 rounded border border-gray-200" disabled>
+                <i class="ri-arrow-right-s-line"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 系统设置卡片 -->
+        <div class="card p-6">
+          <h3 class="text-lg font-medium mb-6">系统参数设置</h3>
+          <form id="system-settings-form" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">系统名称</label>
+                <input type="text" id="system-name" class="input-field w-full" value="列车长管理系统">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">临时启用期限（月）</label>
+                <input type="number" id="temp-period" class="input-field w-full" min="1" max="12" value="3">
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <button type="submit" class="button bg-black text-white px-4 py-2 rounded-md">
+                保存设置
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex justify-center items-center overflow-y-auto p-4">
+    <!-- Add Conductor Modal -->
+    <div id="add-conductor-modal" class="bg-white rounded-lg w-full max-w-lg mx-4 hidden z-50">
+      <div class="flex justify-between items-center p-6 border-b border-gray-100">
+        <h3 class="text-lg font-medium">添加列车长</h3>
+        <button class="modal-close text-gray-400 hover:text-gray-500">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="add-conductor-form">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">工号</label>
+              <input type="text" name="employeeId" class="input-field w-full" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+              <input type="text" name="name" class="input-field w-full" required>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">部门</label>
+            <select name="department" class="input-field w-full" data-department-selector="true" data-default-text="选择部门" required>
+              <!-- 由JavaScript动态填充 -->
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+            <select name="status" class="input-field w-full" required>
+              <option value="后备">后备</option>
+              <option value="正式启用">正式启用</option>
+              <option value="临时启用">临时启用</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+            <textarea name="note" class="input-field w-full" rows="3"></textarea>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" class="modal-close button border border-gray-200 text-gray-800 px-4 py-2 rounded-md">
+              取消
+            </button>
+            <button type="submit" class="button bg-black text-white px-4 py-2 rounded-md">
+              保存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Conductor Modal -->
+    <div id="edit-conductor-modal" class="bg-white rounded-lg w-full max-w-lg mx-4 hidden z-50">
+      <div class="flex justify-between items-center p-6 border-b border-gray-100">
+        <h3 class="text-lg font-medium">编辑列车长信息</h3>
+        <button class="modal-close text-gray-400 hover:text-gray-500">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="edit-conductor-form">
+          <input type="hidden" name="id">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">工号</label>
+              <input type="text" name="employeeId" class="input-field w-full bg-gray-50" readonly>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+              <input type="text" name="name" class="input-field w-full" required>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">部门</label>
+            <select name="department" class="input-field w-full" data-department-selector="true" data-default-text="选择部门" required>
+              <!-- 由JavaScript动态填充 -->
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+            <select name="status" class="input-field w-full" required>
+              <option value="后备">后备</option>
+              <option value="正式启用">正式启用</option>
+              <option value="临时启用">临时启用</option>
+              <option value="免职">免职</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+            <textarea name="note" class="input-field w-full" rows="3"></textarea>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" class="modal-close button border border-gray-200 text-gray-800 px-4 py-2 rounded-md">
+              取消
+            </button>
+            <button type="submit" class="button bg-black text-white px-4 py-2 rounded-md">
+              保存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- New Application Modal -->
+    <div id="new-application-modal" class="bg-white rounded-lg w-full max-w-lg mx-4 hidden z-50">
+      <div class="flex justify-between items-center p-6 border-b border-gray-100">
+        <h3 class="text-lg font-medium" id="application-modal-title">新建申请</h3>
+        <button class="modal-close text-gray-400 hover:text-gray-500">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="new-application-form">
+          <input type="hidden" name="applicationType" id="application-type">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">工号</label>
+            <div class="relative">
+              <input type="text" name="employeeId" id="application-employee-id" class="input-field w-full" required>
+              <button type="button" id="lookup-employee" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-500">
+                <i class="ri-search-line"></i>
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+              <input type="text" name="name" id="application-name" class="input-field w-full bg-gray-50" readonly>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">部门</label>
+              <select name="department" id="application-department" class="input-field w-full" data-department-selector="true" data-default-text="选择部门">
+                <!-- 由JavaScript动态填充 -->
+              </select>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">当前状态</label>
+            <input type="text" name="currentStatus" id="application-current-status" class="input-field w-full bg-gray-50" readonly>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">申请日期</label>
+            <input type="date" name="applicationDate" class="input-field w-full" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+            <textarea name="note" class="input-field w-full" rows="3"></textarea>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" class="modal-close button border border-gray-200 text-gray-800 px-4 py-2 rounded-md">
+              取消
+            </button>
+            <button type="submit" class="button bg-black text-white px-4 py-2 rounded-md">
+              提交申请
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Quota Modal -->
+    <div id="edit-quota-modal" class="bg-white rounded-lg w-full max-w-lg mx-4 hidden z-50">
+      <div class="flex justify-between items-center p-6 border-b border-gray-100">
+        <h3 class="text-lg font-medium">编辑部门定员</h3>
+        <button class="modal-close text-gray-400 hover:text-gray-500">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="edit-quota-form">
+          <div class="space-y-4" id="quota-form-fields">
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">旅游车队</label>
+              <input type="number" name="quota-旅游车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="旅游车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京哈高铁车队</label>
+              <input type="number" name="quota-京哈高铁车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京哈高铁车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京广高铁车队</label>
+              <input type="number" name="quota-京广高铁车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京广高铁车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">短预车队</label>
+              <input type="number" name="quota-短预车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="短预车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京丹车队</label>
+              <input type="number" name="quota-京丹车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京丹车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京张城际车队</label>
+              <input type="number" name="quota-京张城际车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京张城际车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京广动卧车队</label>
+              <input type="number" name="quota-京广动卧车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京广动卧车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">高铁二队</label>
+              <input type="number" name="quota-高铁二队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="高铁二队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京秦车队</label>
+              <input type="number" name="quota-京秦车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京秦车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京沪车队</label>
+              <input type="number" name="quota-京沪车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京沪车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">高铁一队</label>
+              <input type="number" name="quota-高铁一队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="高铁一队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京深车队</label>
+              <input type="number" name="quota-京深车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京深车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京通车队</label>
+              <input type="number" name="quota-京通车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京通车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京照车队</label>
+              <input type="number" name="quota-京照车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京照车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京宜车队</label>
+              <input type="number" name="quota-京宜车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京宜车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">京张高铁车队</label>
+              <input type="number" name="quota-京张高铁车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="京张高铁车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">联运车队</label>
+              <input type="number" name="quota-联运车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="联运车队">0</span> 人</span>
+            </div>
+            <div class="flex items-center space-x-4">
+              <label class="block text-sm font-medium text-gray-700 w-32">青岛车队</label>
+              <input type="number" name="quota-青岛车队" class="input-field w-24" min="0" required>
+              <span class="text-sm text-gray-500">当前: <span class="current-count" data-department="青岛车队">0</span> 人</span>
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" class="modal-close button border border-gray-200 text-gray-800 px-4 py-2 rounded-md">
+              取消
+            </button>
+            <button type="submit" class="button bg-black text-white px-4 py-2 rounded-md">
+              保存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Import Conductors Modal -->
+    <div id="import-conductors-modal" class="bg-white rounded-lg w-full max-w-lg mx-4 hidden z-50">
+      <div class="flex justify-between items-center p-6 border-b border-gray-100">
+        <h3 class="text-lg font-medium">导入列车长信息</h3>
+        <button class="modal-close text-gray-400 hover:text-gray-500">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="import-conductors-form">
+          <div class="mb-6">
+            <p class="text-sm text-gray-600 mb-4">
+              请选择Excel文件（.xlsx, .xls, .csv）导入列车长信息。文件必须包含以下列：
+            </p>
+            <ul class="list-disc list-inside text-sm text-gray-600 mb-4 ml-2">
+              <li>工号</li>
+              <li>姓名</li>
+              <li>部门（系统中已存在的部门，如旅游车队、京哈高铁车队等）</li>
+              <li>状态（正式启用、临时启用、后备、免职）</li>
+              <li>备注（可选）</li>
+            </ul>
+            <p class="text-sm text-blue-600 mb-4">
+              <a href="#" id="download-template" class="flex items-center">
+                <i class="ri-download-line mr-1"></i> 下载导入模板
+              </a>
+            </p>
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">选择文件</label>
+            <div class="flex items-center">
+              <label class="flex-1 flex items-center justify-center border border-gray-300 rounded-md py-2 px-4 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">
+                <i class="ri-upload-2-line mr-2"></i>
+                <span>浏览文件</span>
+                <input id="conductor-excel-file" type="file" accept=".xlsx,.xls,.csv" class="sr-only">
+              </label>
+            </div>
+            <p class="mt-2 text-sm text-gray-400" id="selected-file-name">未选择文件</p>
+          </div>
+          
+          <div id="import-result" class="p-4 rounded-md mb-6 hidden">
+            <p id="import-message"></p>
+            <div id="import-details" class="mt-3 text-sm overflow-auto max-h-40 hidden"></div>
+          </div>
+          
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" class="modal-close button border border-gray-200 text-gray-800 px-4 py-2 rounded-md">
+              取消
+            </button>
+            <button type="submit" class="button bg-black text-white px-4 py-2 rounded-md">
+              开始导入
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Add Department Modal -->
+    <div id="add-department-modal" class="bg-white rounded-lg w-full max-w-lg mx-4 hidden z-50">
+      <div class="flex justify-between items-center p-6 border-b border-gray-100">
+        <h3 class="text-lg font-medium">添加部门</h3>
+        <button class="modal-close text-gray-400 hover:text-gray-500">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="add-department-form">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">部门编号</label>
+              <input type="text" name="departmentId" class="input-field w-full" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">部门名称</label>
+              <input type="text" name="departmentName" class="input-field w-full" required>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">所属单位</label>
+            <input type="text" name="organization" class="input-field w-full" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">定员人数</label>
+            <input type="number" name="quota" class="input-field w-full" min="0" value="0" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+            <textarea name="note" class="input-field w-full" rows="3"></textarea>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" class="modal-close button border border-gray-200 text-gray-800 px-4 py-2 rounded-md">
+              取消
+            </button>
+            <button type="submit" class="button bg-black text-white px-4 py-2 rounded-md">
+              保存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Edit Department Modal -->
+    <div id="edit-department-modal" class="bg-white rounded-lg w-full max-w-lg mx-4 hidden z-50">
+      <div class="flex justify-between items-center p-6 border-b border-gray-100">
+        <h3 class="text-lg font-medium">编辑部门</h3>
+        <button class="modal-close text-gray-400 hover:text-gray-500">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="edit-department-form">
+          <input type="hidden" name="id">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">部门编号</label>
+              <input type="text" name="departmentId" class="input-field w-full bg-gray-50" readonly>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">部门名称</label>
+              <input type="text" name="departmentName" class="input-field w-full" required>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">所属单位</label>
+            <input type="text" name="organization" class="input-field w-full" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">定员人数</label>
+            <input type="number" name="quota" class="input-field w-full" min="0" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+            <textarea name="note" class="input-field w-full" rows="3"></textarea>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" class="modal-close button border border-gray-200 text-gray-800 px-4 py-2 rounded-md">
+              取消
+            </button>
+            <button type="submit" class="button bg-black text-white px-4 py-2 rounded-md">
+              保存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Batch Add Departments Modal -->
+    <div id="batch-add-departments-modal" class="bg-white rounded-lg w-full max-w-lg mx-4 hidden z-50">
+      <div class="flex justify-between items-center p-6 border-b border-gray-100">
+        <h3 class="text-lg font-medium">批量添加部门</h3>
+        <button class="modal-close text-gray-400 hover:text-gray-500">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="batch-add-departments-form">
+          <div class="mb-6">
+            <p class="text-sm text-gray-600 mb-4">
+              请在下方文本框中输入要批量添加的部门，每行一个部门，格式为：
+            </p>
+            <pre class="bg-gray-50 p-3 text-xs rounded mb-2">部门编号,部门名称,所属单位,定员人数,备注</pre>
+            <p class="text-sm text-gray-600 mb-4">
+              例如：<code>D001,运输一部,铁路局,10,新部门</code>
+            </p>
+            <p class="text-sm text-blue-600 mb-4">
+              <a href="#" id="download-department-template" class="flex items-center">
+                <i class="ri-download-line mr-1"></i> 下载导入模板
+              </a>
+            </p>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">部门数据</label>
+            <textarea name="departmentsData" class="input-field w-full font-mono" rows="10" placeholder="D001,运输一部,铁路局,10,新部门" required></textarea>
+          </div>
+          <div class="mb-4">
+            <div class="flex items-center">
+              <input type="checkbox" id="update-existing" name="updateExisting" class="mr-2">
+              <label for="update-existing" class="text-sm text-gray-700">更新已存在的部门</label>
+            </div>
+          </div>
+          
+          <div id="batch-import-result" class="p-4 rounded-md mb-6 hidden">
+            <p id="batch-import-message"></p>
+          </div>
+          
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" class="modal-close button border border-gray-200 text-gray-800 px-4 py-2 rounded-md">
+              取消
+            </button>
+            <button type="submit" class="button bg-black text-white px-4 py-2 rounded-md">
+              开始导入
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 申请导入模态框 -->
+    <div id="import-applications-modal" class="bg-white w-full max-w-2xl rounded-lg shadow-lg overflow-hidden hidden">
+      <div class="flex justify-between items-center border-b p-4">
+        <h2 class="text-xl font-bold text-gray-800">申请记录批量导入</h2>
+        <button class="modal-close text-gray-400 hover:text-gray-600">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="import-applications-form">
+          <p class="mb-4 text-gray-600">
+            请在下方输入申请记录数据，每行一条记录，格式为：<br>
+            <code class="bg-gray-100 px-2 py-1 rounded">申请类型,工号,姓名,部门,申请日期,状态</code>
+          </p>
+          
+          <p class="mb-2 text-gray-600">字段说明:</p>
+          <ul class="mb-4 text-gray-600 list-disc list-inside text-sm">
+            <li>申请类型: 必须为 "正式启用"、"临时启用" 或 "免职"</li>
+            <li>工号: 员工工号</li>
+            <li>姓名: 员工姓名</li>
+            <li>部门: 必须是系统中已存在的部门</li>
+            <li>申请日期: YYYY-MM-DD 格式</li>
+            <li>状态: "待处理" 或 "已处理"（可选，默认为"已处理"）</li>
+          </ul>
+          
+          <div class="border border-gray-300 rounded p-2 mb-2 flex justify-between items-center bg-gray-50">
+            <span>下载示例模板</span>
+            <a href="#" id="download-application-template" class="text-blue-500 hover:underline">点击下载</a>
+          </div>
+          
+          <div class="mb-4">
+            <label for="applications-data" class="block text-gray-700 font-medium mb-2">申请记录数据</label>
+            <textarea 
+              id="applications-data" 
+              name="applicationsData" 
+              rows="10" 
+              class="w-full border border-gray-300 rounded-md px-4 py-2 text-sm focus:border-primary-500 focus:ring focus:ring-primary-200 focus:ring-opacity-50 resize-none"
+              placeholder="正式启用,100009,冯一,运输一部,2023-07-05,待处理"
+            ></textarea>
+          </div>
+          
+          <div class="mb-6">
+            <label class="inline-flex items-center">
+              <input type="checkbox" name="updateExisting" class="rounded text-primary-600 focus:ring-primary-500">
+              <span class="ml-2 text-gray-700">更新已存在的申请（根据员工工号和申请日期匹配）</span>
+            </label>
+          </div>
+          
+          <div id="applications-import-result" class="mb-4 p-3 rounded hidden">
+            <div id="applications-import-message"></div>
+            <div id="applications-import-details" class="text-sm mt-2 max-h-32 overflow-y-auto hidden"></div>
+          </div>
+          
+          <div class="flex justify-end space-x-2">
+            <button type="button" class="modal-close px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+              取消
+            </button>
+            <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
+              开始导入
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="absolute bottom-0 right-0 p-4 text-xs text-gray-500">
+    Built with <a href="https://flowith.net" target="_blank" class="text-black hover:underline">Flowith Oracle</a>.
+  </footer>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="chart-utils.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="conductor-list.js"></script>
+  <script src="application-management.js"></script>
+  <script src="statistics.js"></script>
+  <script src="settings.js"></script>
+  <script src="backup-restore.js"></script>
+  <script src="app.js"></script>
+  <script>
+    window.addEventListener("wheel", (e)=> {
+      const isPinching = e.ctrlKey
+      if(isPinching) e.preventDefault()
+    }, { passive: false })
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(rm:*)",
+      "Bash(npm install)",
+      "Bash(sed:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(timeout 10s npm run dev:*)"
+    ],
+    "deny": []
+  }
+}

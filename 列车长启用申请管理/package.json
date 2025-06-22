@@ -1,0 +1,13 @@
+{
+  "name": "train-conductor-management",
+  "version": "1.0.0",
+  "description": "列车长启用申请管理系统",
+  "scripts": {
+    "build:css": "tailwindcss -i src/input.css -o dist/output.css --minify",
+    "watch:css": "tailwindcss -i src/input.css -o dist/output.css --watch",
+    "dev": "npm run watch:css"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.3.0"
+  }
+} 

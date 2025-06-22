@@ -1,0 +1,160 @@
+// 暗色模式样式
+.dark {
+  // 背景色
+  --bg-white: #141414;
+  --bg-page: #0a0a0a;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  
+  // 文字颜色
+  --text-primary: #e4e7ed;
+  --text-regular: #cfd3dc;
+  --text-secondary: #a3a6ad;
+  --text-placeholder: #8b8e95;
+  
+  // 边框颜色
+  --border-base: #363637;
+  --border-light: #262627;
+  --border-lighter: #1d1d1d;
+  --border-extra-light: #191919;
+  
+  // 填充颜色
+  --fill-base: #262627;
+  --fill-light: #1d1d1d;
+  --fill-lighter: #191919;
+  --fill-extra-light: #141414;
+  
+  // 阴影
+  --shadow-base: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-light: 0 2px 12px 0 rgba(0, 0, 0, 0.2);
+  
+  // 自定义卡片样式
+  .card {
+    background: var(--bg-white);
+    border: 1px solid var(--border-lighter);
+    box-shadow: var(--shadow-base);
+  }
+  
+  // Element Plus 组件调整
+  .el-table {
+    background-color: transparent;
+    
+    &::before {
+      background-color: var(--border-lighter);
+    }
+    
+    th.el-table__cell {
+      background-color: var(--fill-light);
+    }
+    
+    tr {
+      background-color: transparent;
+      
+      &:hover > td.el-table__cell {
+        background-color: var(--bg-hover);
+      }
+    }
+    
+    td.el-table__cell {
+      border-bottom-color: var(--border-lighter);
+    }
+    
+    &--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+      background: var(--fill-extra-light);
+    }
+  }
+  
+  // 输入框
+  .el-input__wrapper {
+    background-color: var(--fill-light);
+    box-shadow: 0 0 0 1px var(--border-light) inset;
+    
+    &:hover {
+      box-shadow: 0 0 0 1px var(--border-base) inset;
+    }
+  }
+  
+  .el-input.is-focus .el-input__wrapper {
+    box-shadow: 0 0 0 1px var(--color-primary) inset;
+  }
+  
+  // 选择器
+  .el-select__wrapper {
+    background-color: var(--fill-light);
+    box-shadow: 0 0 0 1px var(--border-light) inset;
+    
+    &:hover {
+      box-shadow: 0 0 0 1px var(--border-base) inset;
+    }
+  }
+  
+  // 下拉菜单
+  .el-dropdown-menu {
+    background-color: var(--bg-white);
+    border-color: var(--border-light);
+  }
+  
+  .el-dropdown-menu__item:not(.is-disabled):focus {
+    background-color: var(--fill-light);
+  }
+  
+  // 弹窗
+  .el-dialog {
+    background-color: var(--bg-white);
+    
+    .el-dialog__header {
+      border-bottom-color: var(--border-lighter);
+    }
+  }
+  
+  // 分页
+  .el-pagination {
+    .el-pager li {
+      background-color: var(--fill-light);
+      
+      &:hover {
+        background-color: var(--fill-base);
+      }
+      
+      &.is-active {
+        background-color: var(--color-primary);
+      }
+    }
+  }
+  
+  // 图表颜色调整
+  .chart-container {
+    filter: brightness(0.9);
+  }
+  
+  // 虚拟表格
+  .virtual-table-container {
+    border-color: var(--border-light);
+    
+    .virtual-table-header {
+      background: var(--fill-light);
+      border-bottom-color: var(--border-light);
+      
+      th {
+        color: var(--text-secondary);
+        
+        &:hover {
+          background: var(--fill-base);
+        }
+      }
+    }
+    
+    .el-table__cell {
+      border-bottom-color: var(--border-lighter);
+    }
+    
+    .el-table__row {
+      &:hover {
+        background-color: var(--bg-hover);
+      }
+      
+      &.el-table__row--striped {
+        background: var(--fill-extra-light);
+      }
+    }
+  }
+} 

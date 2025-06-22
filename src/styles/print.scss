@@ -1,0 +1,193 @@
+// 打印样式
+@media print {
+  // 隐藏不需要打印的元素
+  .sidebar,
+  .header,
+  .el-button,
+  .el-pagination,
+  .filter-bar,
+  .header-actions,
+  .report-actions,
+  .report-selector,
+  .month-selector .el-date-picker,
+  .time-selector,
+  .el-message,
+  .el-notification {
+    display: none !important;
+  }
+  
+  // 页面基本设置
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    font-size: 12pt;
+  }
+  
+  // 主内容区域
+  .main-layout {
+    display: block !important;
+  }
+  
+  .main-content {
+    padding: 0 !important;
+    background: white !important;
+  }
+  
+  // 卡片样式
+  .card {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    margin-bottom: 20px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    
+    .card-header {
+      background: #f5f5f5 !important;
+      border-bottom: 1px solid #ddd !important;
+      padding: 10px 15px !important;
+      
+      h3 {
+        font-size: 14pt !important;
+        margin: 0 !important;
+        color: #000 !important;
+      }
+    }
+  }
+  
+  // 表格打印优化
+  .el-table {
+    border: 1px solid #ddd !important;
+    
+    th.el-table__cell {
+      background: #f5f5f5 !important;
+      color: #000 !important;
+      font-weight: bold !important;
+      border: 1px solid #ddd !important;
+    }
+    
+    td.el-table__cell {
+      border: 1px solid #ddd !important;
+      color: #000 !important;
+    }
+    
+    // 确保表格不被分页截断
+    tr {
+      page-break-inside: avoid;
+    }
+  }
+  
+  // 图表打印优化
+  .chart-container {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    max-height: 400px !important;
+    
+    canvas {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+  }
+  
+  // 统计卡片
+  .stat-card {
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+    
+    .stat-value {
+      color: #000 !important;
+      font-size: 20pt !important;
+    }
+    
+    .stat-label {
+      color: #666 !important;
+    }
+  }
+  
+  // 标签打印优化
+  .el-tag {
+    border: 1px solid currentColor !important;
+    background: transparent !important;
+    color: #000 !important;
+    
+    &--success {
+      border-color: #67c23a !important;
+      color: #67c23a !important;
+    }
+    
+    &--danger {
+      border-color: #f56c6c !important;
+      color: #f56c6c !important;
+    }
+    
+    &--warning {
+      border-color: #e6a23c !important;
+      color: #e6a23c !important;
+    }
+  }
+  
+  // 打印页眉页脚
+  @page {
+    margin: 1cm;
+    
+    @top-center {
+      content: "列车长考核管理系统";
+      font-size: 10pt;
+      color: #666;
+    }
+    
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font-size: 10pt;
+      color: #666;
+    }
+    
+    @bottom-right {
+      content: "打印时间: " attr(data-print-time);
+      font-size: 10pt;
+      color: #666;
+    }
+  }
+  
+  // 报表专用打印样式
+  .report-content {
+    .report-header {
+      text-align: center !important;
+      padding: 20px 0 !important;
+      border-bottom: 2px solid #333 !important;
+      
+      h2 {
+        font-size: 18pt !important;
+        margin: 0 !important;
+        color: #000 !important;
+      }
+    }
+    
+    .summary-stats {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      
+      .stat-item {
+        border: 1px solid #ddd !important;
+        padding: 10px !important;
+        text-align: center !important;
+      }
+    }
+  }
+  
+  // 暗色模式打印修正
+  .dark {
+    background: white !important;
+    color: #000 !important;
+    
+    * {
+      background: transparent !important;
+      color: inherit !important;
+    }
+  }
+} 

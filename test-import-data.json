@@ -1,0 +1,52 @@
+{
+  "conductors": [
+    {
+      "employeeId": "TC001",
+      "name": "张三",
+      "department": "客运段",
+      "status": "正式启用",
+      "note": "导入的数据 - 部门更新"
+    },
+    {
+      "employeeId": "TC002", 
+      "name": "李四",
+      "department": "货运段",
+      "status": "临时启用",
+      "note": "导入的新数据"
+    },
+    {
+      "employeeId": "TC001",
+      "name": "王五",
+      "department": "机务段", 
+      "status": "正式启用",
+      "note": "工号冲突示例 - 工号TC001但姓名不同"
+    },
+    {
+      "employeeId": "TC999",
+      "name": "张三",
+      "department": "电务段",
+      "status": "后备",
+      "note": "姓名冲突示例 - 姓名张三但工号不同"
+    },
+    {
+      "employeeId": "TC100",
+      "name": "赵六",
+      "department": "工务段",
+      "status": "正式启用", 
+      "note": "全新人员 - 应该直接导入"
+    },
+    {
+      "employeeId": "TC003",
+      "name": "孙七",
+      "department": "车辆段",
+      "status": "免职",
+      "note": "复杂冲突示例的一部分"
+    }
+  ],
+  "metadata": {
+    "exportTime": "2024-12-27T10:00:00Z",
+    "source": "列车长启用申请管理子系统",
+    "version": "1.0",
+    "totalRecords": 6
+  }
+} 
