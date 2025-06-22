@@ -1,163 +1,364 @@
 <template>
-  <div class="assessment-records-container">
+  <div class="assessment-records-container" :class="{ 'mobile-layout': isMobile }">
     <!-- 筛选条件 -->
-    <div class="filter-section card">
-      <el-form :inline="true" :model="filterForm">
-        <el-form-item label="年月">
-          <el-date-picker
-            v-model="filterForm.yearMonth"
-            type="month"
-            placeholder="选择月份"
-            format="YYYY年MM月"
-            value-format="YYYY-MM"
-            @change="handleFilter"
-          />
-        </el-form-item>
-        <el-form-item label="部门">
-          <el-select v-model="filterForm.department" placeholder="全部部门" clearable @change="handleFilter">
-            <el-option
-              v-for="dept in departments"
-              :key="dept"
-              :label="dept"
-              :value="dept"
+    <div class="filter-section card" :class="{ 'mobile-filter': isMobile }">
+      <!-- 手机端筛选按钮 -->
+      <div v-if="isMobile" class="mobile-filter-header">
+        <el-button 
+          @click="showMobileFilter = !showMobileFilter"
+          :type="hasActiveFilters ? 'primary' : 'default'"
+          class="mobile-filter-toggle"
+        >
+          <el-icon><Filter /></el-icon>
+          筛选条件
+          <el-icon v-if="hasActiveFilters"><InfoFilled /></el-icon>
+          <el-icon :class="{ 'rotate-180': showMobileFilter }"><ArrowDown /></el-icon>
+        </el-button>
+        <div v-if="hasActiveFilters" class="active-filters-count">
+          {{ activeFiltersCount }}个条件
+        </div>
+      </div>
+
+      <!-- 筛选表单 -->
+      <div v-show="!isMobile || showMobileFilter" class="filter-form-container">
+        <el-form 
+          :inline="!isMobile" 
+          :model="filterForm"
+          :class="{ 'mobile-form': isMobile }"
+        >
+          <el-form-item label="年月">
+            <el-date-picker
+              v-model="filterForm.yearMonth"
+              type="month"
+              :placeholder="isMobile ? '选择月份' : '选择月份'"
+              format="YYYY年MM月"
+              value-format="YYYY-MM"
+              @change="handleFilter"
+              :size="isMobile ? 'default' : 'default'"
+              style="width: 100%"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="列车长">
-          <el-input
-            v-model="filterForm.conductor"
-            placeholder="姓名或工号"
-            clearable
-            @change="handleFilter"
-          />
-        </el-form-item>
-        <el-form-item label="考核部门">
-          <el-select v-model="filterForm.assessorDept" placeholder="全部" clearable @change="handleFilter">
-            <el-option label="科室" value="科室" />
-            <el-option label="车队" value="车队" />
-            <el-option label="其他" value="其他" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleFilter">查询</el-button>
-          <el-button @click="resetFilter">重置</el-button>
-        </el-form-item>
-      </el-form>
+          </el-form-item>
+          
+          <el-form-item label="部门">
+            <el-select 
+              v-model="filterForm.department" 
+              :placeholder="isMobile ? '全部部门' : '全部部门'" 
+              clearable 
+              @change="handleFilter"
+              :size="isMobile ? 'default' : 'default'"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="dept in departments"
+                :key="dept"
+                :label="dept"
+                :value="dept"
+              />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="列车长">
+            <el-input
+              v-model="filterForm.conductor"
+              :placeholder="isMobile ? '姓名或工号' : '姓名或工号'"
+              clearable
+              @change="handleFilter"
+              :size="isMobile ? 'default' : 'default'"
+              style="width: 100%"
+            />
+          </el-form-item>
+          
+          <el-form-item label="考核部门">
+            <el-select 
+              v-model="filterForm.assessorDept" 
+              :placeholder="isMobile ? '全部' : '全部'" 
+              clearable 
+              @change="handleFilter"
+              :size="isMobile ? 'default' : 'default'"
+              style="width: 100%"
+            >
+              <el-option label="科室" value="科室" />
+              <el-option label="车队" value="车队" />
+              <el-option label="其他" value="其他" />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item class="filter-actions">
+            <el-button 
+              type="primary" 
+              @click="handleFilter"
+              :size="isMobile ? 'default' : 'default'"
+              :class="{ 'mobile-btn': isMobile }"
+            >
+              <el-icon><Search /></el-icon>
+              <span v-if="!isMobile">查询</span>
+            </el-button>
+            <el-button 
+              @click="resetFilter"
+              :size="isMobile ? 'default' : 'default'"
+              :class="{ 'mobile-btn': isMobile }"
+            >
+              <el-icon><RefreshLeft /></el-icon>
+              <span v-if="!isMobile">重置</span>
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </div>
     </div>
 
     <!-- 统计信息 -->
-    <div class="stats-section card">
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <el-statistic title="考核记录数" :value="filteredRecords.length" />
+    <div class="stats-section card" :class="{ 'mobile-stats': isMobile }">
+      <el-row :gutter="isMobile ? 12 : 20">
+        <el-col :xs="12" :sm="12" :md="6" :lg="6">
+          <div class="stat-item">
+            <el-statistic 
+              title="考核记录数" 
+              :value="filteredRecords.length"
+              :value-style="{ fontSize: isMobile ? '20px' : '24px', fontWeight: '600' }"
+            />
+          </div>
         </el-col>
-        <el-col :span="6">
-          <el-statistic title="涉及人员" :value="stats.conductorCount" />
+        <el-col :xs="12" :sm="12" :md="6" :lg="6">
+          <div class="stat-item">
+            <el-statistic 
+              title="涉及人员" 
+              :value="stats.conductorCount"
+              :value-style="{ fontSize: isMobile ? '20px' : '24px', fontWeight: '600' }"
+            />
+          </div>
         </el-col>
-        <el-col :span="6">
-          <el-statistic title="累计分值" :value="stats.totalScore" suffix="分" />
+        <el-col :xs="12" :sm="12" :md="6" :lg="6">
+          <div class="stat-item">
+            <el-statistic 
+              title="累计分值" 
+              :value="stats.totalScore" 
+              suffix="分"
+              :value-style="{ fontSize: isMobile ? '20px' : '24px', fontWeight: '600' }"
+            />
+          </div>
         </el-col>
-        <el-col :span="6">
-          <el-statistic title="平均分值" :value="stats.avgScore" :precision="1" suffix="分" />
+        <el-col :xs="12" :sm="12" :md="6" :lg="6">
+          <div class="stat-item">
+            <el-statistic 
+              title="平均分值" 
+              :value="stats.avgScore" 
+              :precision="1" 
+              suffix="分"
+              :value-style="{ fontSize: isMobile ? '20px' : '24px', fontWeight: '600' }"
+            />
+          </div>
         </el-col>
       </el-row>
     </div>
 
     <!-- 记录列表 -->
     <div class="records-section card">
-      <div class="section-header">
+      <div class="section-header" :class="{ 'mobile-header': isMobile }">
         <h3>考核记录列表</h3>
         <div class="actions">
-          <el-button type="primary" @click="exportRecords">
+          <el-button 
+            type="primary" 
+            @click="exportRecords"
+            :size="isMobile ? 'default' : 'default'"
+            :class="{ 'mobile-export-btn': isMobile }"
+          >
             <el-icon><Download /></el-icon>
-            导出Excel
+            <span v-if="!isMobile">导出Excel</span>
+            <span v-else>导出</span>
           </el-button>
         </div>
       </div>
       
-      <el-table
-        :data="pagedRecords"
-        stripe
-        v-loading="loading"
-        @row-click="showRecordDetail"
-        style="cursor: pointer"
-      >
-        <el-table-column prop="conductorId" label="工号" width="100" />
-        <el-table-column prop="conductorName" label="姓名" width="100" />
-        <el-table-column prop="department" label="所属部门" min-width="150" />
-        <el-table-column prop="assessDate" label="考核日期" width="120" sortable />
-        <el-table-column label="考核部门" min-width="150">
-          <template #default="{ row }">
-            <span v-if="row.assessorDepartmentName">{{ row.assessorDepartmentName }}</span>
+      <!-- PC端表格显示 -->
+      <div v-if="!isMobile" class="desktop-table">
+        <el-table
+          :data="pagedRecords"
+          stripe
+          v-loading="loading"
+          @row-click="showRecordDetail"
+          style="cursor: pointer"
+        >
+          <el-table-column prop="conductorId" label="工号" width="100" />
+          <el-table-column prop="conductorName" label="姓名" width="100" />
+          <el-table-column prop="department" label="所属部门" min-width="150" />
+          <el-table-column prop="assessDate" label="考核日期" width="120" sortable />
+          <el-table-column label="考核部门" min-width="150">
+            <template #default="{ row }">
+              <span v-if="row.assessorDepartmentName">{{ row.assessorDepartmentName }}</span>
+              <el-button 
+                v-else
+                type="primary" 
+                text 
+                size="small"
+                @click.stop="openDeptDialog(row)"
+              >
+                <el-icon><Setting /></el-icon>
+                设置部门
+              </el-button>
+            </template>
+          </el-table-column>
+          <el-table-column prop="assessDeptType" label="考核类型" width="100">
+            <template #default="{ row }">
+              <el-tag :type="getDeptTypeTagType(row.assessDeptType)" size="small">
+                {{ row.assessDeptType }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="本次分值" width="100" sortable>
+            <template #default="{ row }">
+              <span :class="getScoreClass(calculateNetScore(row.details))">
+                {{ formatScoreDisplay(calculateNetScore(row.details)) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="考核类别" min-width="200">
+            <template #default="{ row }">
+              <div class="category-display">
+                <span class="category-text">{{ getCategoryDisplay(row.details) }}</span>
+                <el-tooltip
+                  v-if="row.details.length > 0"
+                  :content="getDeductionSummary(row.details)"
+                  placement="top"
+                  :show-after="500"
+                >
+                  <el-tag size="small" class="ml-2">{{ row.details.length }}项</el-tag>
+                </el-tooltip>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" text @click.stop="showRecordDetail(row)">
+                查看详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 手机端卡片显示 -->
+      <div v-else class="mobile-cards">
+        <div 
+          v-for="record in pagedRecords" 
+          :key="record.id" 
+          class="record-card"
+          @click="showRecordDetail(record)"
+        >
+          <!-- 卡片头部 -->
+          <div class="card-header">
+            <div class="conductor-info">
+              <div class="conductor-name">{{ record.conductorName }}</div>
+              <div class="conductor-id">{{ record.conductorId }}</div>
+            </div>
+            <div class="record-score">
+              <span :class="getScoreClass(calculateNetScore(record.details))">
+                {{ formatScoreDisplay(calculateNetScore(record.details)) }}分
+              </span>
+            </div>
+          </div>
+          
+          <!-- 卡片内容 -->
+          <div class="card-content">
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">部门</span>
+                <span class="info-value">{{ record.department }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">考核日期</span>
+                <span class="info-value">{{ record.assessDate }}</span>
+              </div>
+            </div>
+            
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">考核部门</span>
+                <span class="info-value">
+                  {{ record.assessorDepartmentName || '未设置' }}
+                  <el-tag 
+                    v-if="record.assessDeptType" 
+                    :type="getDeptTypeTagType(record.assessDeptType)" 
+                    size="small"
+                    class="ml-1"
+                  >
+                    {{ record.assessDeptType }}
+                  </el-tag>
+                </span>
+              </div>
+            </div>
+            
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">考核类别</span>
+                <div class="category-info">
+                  <span class="category-text">{{ getCategoryDisplay(record.details) }}</span>
+                  <el-tag v-if="record.details.length > 0" size="small" class="ml-1">
+                    {{ record.details.length }}项
+                  </el-tag>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 卡片操作 -->
+          <div class="card-actions" @click.stop>
             <el-button 
-              v-else
               type="primary" 
-              text 
-              size="small"
-              @click.stop="openDeptDialog(row)"
+              size="small" 
+              @click="showRecordDetail(record)"
+              class="mobile-action-btn"
+            >
+              <el-icon><View /></el-icon>
+              查看详情
+            </el-button>
+            <el-button 
+              v-if="!record.assessorDepartmentName"
+              type="warning" 
+              size="small" 
+              @click="openDeptDialog(record)"
+              class="mobile-action-btn"
             >
               <el-icon><Setting /></el-icon>
               设置部门
             </el-button>
-          </template>
-        </el-table-column>
-        <el-table-column prop="assessDeptType" label="考核类型" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getDeptTypeTagType(row.assessDeptType)" size="small">
-              {{ row.assessDeptType }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="本次分值" width="100" sortable>
-          <template #default="{ row }">
-            <span :class="getScoreClass(calculateNetScore(row.details))">
-              {{ formatScoreDisplay(calculateNetScore(row.details)) }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="考核类别" min-width="200">
-          <template #default="{ row }">
-            <div class="category-display">
-              <span class="category-text">{{ getCategoryDisplay(row.details) }}</span>
-              <el-tooltip
-                v-if="row.details.length > 0"
-                :content="getDeductionSummary(row.details)"
-                placement="top"
-                :show-after="500"
-              >
-                <el-tag size="small" class="ml-2">{{ row.details.length }}项</el-tag>
-              </el-tooltip>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" size="small" text @click.stop="showRecordDetail(row)">
-              查看详情
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          </div>
+        </div>
+        
+        <!-- 无数据状态 -->
+        <div v-if="pagedRecords.length === 0" class="empty-state">
+          <el-empty :description="filteredRecords.length === 0 ? '暂无考核记录' : '当前页无数据'">
+            <el-button type="primary" @click="resetFilter">重置筛选条件</el-button>
+          </el-empty>
+        </div>
+      </div>
       
       <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :total="filteredRecords.length"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        class="mt-4"
-      />
+      <div class="pagination-wrapper" :class="{ 'mobile-pagination': isMobile }">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="filteredRecords.length"
+          :page-sizes="isMobile ? [10, 20, 50] : [10, 20, 50, 100]"
+          :layout="isMobile ? 'total, prev, pager, next' : 'total, sizes, prev, pager, next, jumper'"
+          :small="isMobile"
+        />
+      </div>
     </div>
 
     <!-- 详情对话框 -->
     <el-dialog
       v-model="detailDialogVisible"
       title="考核记录详情"
-      width="800px"
+      :width="isMobile ? '95%' : '800px'"
+      :class="{ 'mobile-dialog': isMobile }"
     >
-      <div v-if="currentRecord" class="record-detail">
-        <el-descriptions :column="2" border class="mb-4">
+      <div v-if="currentRecord" class="record-detail" :class="{ 'mobile-detail': isMobile }">
+        <el-descriptions 
+          :column="isMobile ? 1 : 2" 
+          border 
+          class="mb-4"
+          :size="isMobile ? 'default' : 'default'"
+        >
           <el-descriptions-item label="工号">{{ currentRecord.conductorId }}</el-descriptions-item>
           <el-descriptions-item label="姓名">{{ currentRecord.conductorName }}</el-descriptions-item>
           <el-descriptions-item label="部门">{{ currentRecord.department }}</el-descriptions-item>
@@ -172,59 +373,118 @@
           </el-descriptions-item>
         </el-descriptions>
         
-        <h4>考核明细</h4>
-        <el-table :data="currentRecord.details" border>
-          <el-table-column type="index" label="序号" width="60" />
-          <el-table-column prop="item" label="考核项目" min-width="200" show-overflow-tooltip />
-          <el-table-column label="标准项点" width="150">
-            <template #default="{ row }">
-              <el-popover
-                v-if="row.itemCode && getStandardItem(row.itemCode)"
-                placement="top"
-                :width="300"
-                trigger="hover"
-              >
-                <div class="item-info">
-                  <p><strong>项点ID:</strong> {{ row.itemCode }}</p>
-                  <p><strong>项点名称:</strong> {{ getStandardItem(row.itemCode)?.name }}</p>
-                  <p><strong>标准分值:</strong> {{ getStandardItem(row.itemCode)?.maxScore }}</p>
-                  <p><strong>负责部门:</strong> {{ getStandardItem(row.itemCode)?.responsibleDepartment }}</p>
+        <h4 style="margin: 16px 0 12px 0;">考核明细</h4>
+        
+        <!-- PC端表格显示 -->
+        <div v-if="!isMobile">
+          <el-table :data="currentRecord.details" border>
+            <el-table-column type="index" label="序号" width="60" />
+            <el-table-column prop="item" label="考核项目" min-width="200" show-overflow-tooltip />
+            <el-table-column label="标准项点" width="150">
+              <template #default="{ row }">
+                <el-popover
+                  v-if="row.itemCode && getStandardItem(row.itemCode)"
+                  placement="top"
+                  :width="300"
+                  trigger="hover"
+                >
+                  <div class="item-info">
+                    <p><strong>项点ID:</strong> {{ row.itemCode }}</p>
+                    <p><strong>项点名称:</strong> {{ getStandardItem(row.itemCode)?.name }}</p>
+                    <p><strong>标准分值:</strong> {{ getStandardItem(row.itemCode)?.maxScore }}</p>
+                    <p><strong>负责部门:</strong> {{ getStandardItem(row.itemCode)?.responsibleDepartment }}</p>
+                  </div>
+                  <template #reference>
+                    <el-tag type="success" size="small" style="cursor: pointer">
+                      <el-icon><Link /></el-icon>
+                      已关联
+                    </el-tag>
+                  </template>
+                </el-popover>
+                <el-tag v-else type="info" size="small">未关联</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="itemCategory" label="考核类别" width="120" />
+            <el-table-column prop="deduction" label="分值" width="80">
+              <template #default="{ row }">
+                <span :class="getScoreClass(row.deduction)">
+                  {{ formatScoreDisplay(row.deduction) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="itemDetail" label="详情" min-width="150" show-overflow-tooltip />
+          </el-table>
+        </div>
+        
+        <!-- 手机端列表显示 -->
+        <div v-else class="mobile-detail-list">
+          <div 
+            v-for="(detail, index) in currentRecord.details" 
+            :key="index" 
+            class="detail-item"
+          >
+            <div class="detail-header">
+              <div class="detail-index">{{ index + 1 }}</div>
+              <div class="detail-score">
+                <span :class="getScoreClass(detail.deduction)">
+                  {{ formatScoreDisplay(detail.deduction) }}分
+                </span>
+              </div>
+            </div>
+            
+            <div class="detail-content">
+              <div class="detail-title">{{ detail.item }}</div>
+              <div class="detail-meta">
+                <div class="meta-item">
+                  <span class="meta-label">类别:</span>
+                  <span class="meta-value">{{ detail.itemCategory || '未分类' }}</span>
                 </div>
-                <template #reference>
-                  <el-tag type="success" size="small" style="cursor: pointer">
+                <div class="meta-item" v-if="detail.itemDetail">
+                  <span class="meta-label">详情:</span>
+                  <span class="meta-value">{{ detail.itemDetail }}</span>
+                </div>
+                <div class="meta-item" v-if="detail.itemCode && getStandardItem(detail.itemCode)">
+                  <span class="meta-label">标准项点:</span>
+                  <el-tag type="success" size="small">
                     <el-icon><Link /></el-icon>
                     已关联
                   </el-tag>
-                </template>
-              </el-popover>
-              <el-tag v-else type="info" size="small">未关联</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="itemCategory" label="考核类别" width="120" />
-          <el-table-column prop="deduction" label="分值" width="80">
-            <template #default="{ row }">
-              <span :class="getScoreClass(row.deduction)">
-                {{ formatScoreDisplay(row.deduction) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="itemDetail" label="详情" min-width="150" show-overflow-tooltip />
-        </el-table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      
+      <template #footer v-if="isMobile">
+        <div class="mobile-dialog-footer">
+          <el-button @click="detailDialogVisible = false" size="default">关闭</el-button>
+        </div>
+      </template>
     </el-dialog>
 
-         <!-- 类别对话框 -->
-     <CategoryDialog ref="categoryDialogRef" :categories="categoriesList" @confirm="handleCategoryConfirm" />
-     
-     <!-- 部门对话框 -->
-     <DeptDialog ref="deptDialogRef" @confirm="handleDeptConfirm" />
+    <!-- 类别对话框 -->
+    <CategoryDialog ref="categoryDialogRef" :categories="categoriesList" @confirm="handleCategoryConfirm" />
+    
+    <!-- 部门对话框 -->
+    <DeptDialog ref="deptDialogRef" @confirm="handleDeptConfirm" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Download, Link, Setting } from '@element-plus/icons-vue'
+import { 
+  Download, 
+  Link, 
+  Setting, 
+  Search, 
+  RefreshLeft, 
+  Filter, 
+  ArrowDown, 
+  InfoFilled,
+  View
+} from '@element-plus/icons-vue'
 import { useMainStore } from '@/stores'
 import { ExcelProcessor } from '@/utils/excel'
 import type { AssessmentRecord, StandardAssessmentItem } from '@/types'
@@ -233,6 +493,19 @@ import DeptDialog from './DeptDialog.vue'
 import { CategoryService } from '@/utils/categoryService'
 
 const mainStore = useMainStore()
+
+// 移动端检测
+const isMobile = ref(false)
+const showMobileFilter = ref(false)
+
+const checkMobileDevice = () => {
+  const width = window.innerWidth
+  isMobile.value = width <= 768
+}
+
+const handleResize = () => {
+  checkMobileDevice()
+}
 
 // 状态
 const loading = ref(false)
@@ -505,8 +778,25 @@ const exportRecords = () => {
   ElMessage.success('导出成功')
 }
 
+// 筛选相关计算属性
+const hasActiveFilters = computed(() => {
+  return !!(filterForm.yearMonth || filterForm.department || filterForm.conductor || filterForm.assessorDept)
+})
+
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (filterForm.yearMonth) count++
+  if (filterForm.department) count++
+  if (filterForm.conductor) count++
+  if (filterForm.assessorDept) count++
+  return count
+})
+
 // 生命周期
 onMounted(() => {
+  checkMobileDevice()
+  window.addEventListener('resize', handleResize)
+  
   if (!mainStore.database) {
     mainStore.loadDatabase().then(() => {
       loadRecords()
@@ -515,24 +805,124 @@ onMounted(() => {
     loadRecords()
   }
 })
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 </script>
 
 <style lang="scss" scoped>
 .assessment-records-container {
+  &.mobile-layout {
+    padding: 8px;
+  }
+  
   .card {
     background: var(--bg-white);
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 20px;
     margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
   
   .filter-section {
+    &.mobile-filter {
+      padding: 12px;
+      
+      .mobile-filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        
+        .mobile-filter-toggle {
+          min-height: 44px;
+          font-size: 14px;
+          
+          .el-icon {
+            margin-right: 4px;
+            
+            &.rotate-180 {
+              transform: rotate(180deg);
+              transition: transform 0.3s ease;
+            }
+          }
+        }
+        
+        .active-filters-count {
+          font-size: 12px;
+          color: #409eff;
+          background: rgba(64, 158, 255, 0.1);
+          padding: 4px 8px;
+          border-radius: 12px;
+        }
+      }
+      
+      .filter-form-container {
+        .mobile-form {
+          .el-form-item {
+            margin-bottom: 16px;
+            
+            .el-form-item__label {
+              font-size: 14px;
+              font-weight: 500;
+              padding-bottom: 6px;
+            }
+          }
+          
+          .filter-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            
+            .mobile-btn {
+              flex: 1;
+              min-height: 44px;
+              font-size: 14px;
+              
+              .el-icon {
+                margin-right: 4px;
+              }
+            }
+          }
+        }
+      }
+    }
+    
     :deep(.el-form-item) {
       margin-bottom: 0;
     }
   }
   
   .stats-section {
+    &.mobile-stats {
+      padding: 12px;
+      
+      .stat-item {
+        text-align: center;
+        padding: 8px;
+        
+        :deep(.el-statistic) {
+          .el-statistic__content {
+            .el-statistic__number {
+              font-size: 20px !important;
+              font-weight: 600 !important;
+            }
+            
+            .el-statistic__suffix {
+              font-size: 14px !important;
+            }
+          }
+          
+          .el-statistic__head {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 4px;
+          }
+        }
+      }
+    }
+    
     :deep(.el-statistic) {
       text-align: center;
     }
@@ -545,6 +935,31 @@ onMounted(() => {
       align-items: center;
       margin-bottom: 16px;
       
+      &.mobile-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+        
+        h3 {
+          text-align: center;
+        }
+        
+        .actions {
+          display: flex;
+          justify-content: center;
+          
+          .mobile-export-btn {
+            min-height: 44px;
+            font-size: 14px;
+            padding: 10px 20px;
+            
+            .el-icon {
+              margin-right: 6px;
+            }
+          }
+        }
+      }
+      
       h3 {
         margin: 0;
         font-size: 16px;
@@ -552,6 +967,156 @@ onMounted(() => {
       }
     }
     
+    // 手机端卡片样式
+    .mobile-cards {
+      .record-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+          transform: translateY(-1px);
+        }
+        
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+          
+          .conductor-info {
+            .conductor-name {
+              font-size: 18px;
+              font-weight: 600;
+              color: #303133;
+              margin-bottom: 4px;
+              line-height: 1.3;
+            }
+            
+            .conductor-id {
+              font-size: 13px;
+              color: #909399;
+              font-family: 'Courier New', monospace;
+              background: rgba(144, 147, 153, 0.1);
+              padding: 2px 6px;
+              border-radius: 4px;
+              display: inline-block;
+            }
+          }
+          
+          .record-score {
+            flex-shrink: 0;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.05);
+          }
+        }
+        
+        .card-content {
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            
+            .info-item {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              
+              &:not(:last-child) {
+                margin-right: 16px;
+              }
+              
+              .info-label {
+                font-size: 12px;
+                color: #909399;
+                margin-bottom: 2px;
+                font-weight: 500;
+              }
+              
+              .info-value {
+                font-size: 14px;
+                color: #606266;
+                font-weight: 500;
+                line-height: 1.4;
+                
+                .ml-1 {
+                  margin-left: 4px;
+                }
+              }
+              
+              .category-info {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 4px;
+                
+                .category-text {
+                  font-size: 14px;
+                  color: #606266;
+                  font-weight: 500;
+                }
+                
+                .ml-1 {
+                  margin-left: 4px;
+                }
+              }
+            }
+          }
+        }
+        
+        .card-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid #f0f0f0;
+          
+          .mobile-action-btn {
+            flex: 1;
+            min-height: 36px;
+            font-size: 13px;
+            
+            .el-icon {
+              margin-right: 4px;
+            }
+          }
+        }
+      }
+      
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        background: white;
+        border-radius: 12px;
+        
+        :deep(.el-empty) {
+          .el-empty__description {
+            margin: 12px 0;
+            
+            p {
+              color: #909399;
+              font-size: 14px;
+            }
+          }
+        }
+      }
+    }
+    
+    // 分值样式
     .deduction-score {
       color: #f56c6c;
       font-weight: 500;
@@ -591,7 +1156,109 @@ onMounted(() => {
     }
   }
   
+  // 分页样式
+  .pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    
+    &.mobile-pagination {
+      :deep(.el-pagination) {
+        .el-pagination__total,
+        .el-pagination__jump {
+          font-size: 12px;
+        }
+        
+        .el-pager {
+          li {
+            min-width: 32px;
+            height: 32px;
+            line-height: 30px;
+            font-size: 13px;
+            margin: 0 2px;
+          }
+        }
+        
+        .btn-prev,
+        .btn-next {
+          min-width: 32px;
+          height: 32px;
+          line-height: 30px;
+        }
+      }
+    }
+  }
+  
+  // 详情对话框样式
   .record-detail {
+    &.mobile-detail {
+      .mobile-detail-list {
+        .detail-item {
+          background: #f8f9fa;
+          border-radius: 8px;
+          padding: 12px;
+          margin-bottom: 8px;
+          
+          .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            
+            .detail-index {
+              width: 24px;
+              height: 24px;
+              background: #409eff;
+              color: white;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              font-weight: 600;
+            }
+            
+            .detail-score {
+              font-size: 14px;
+              font-weight: 600;
+            }
+          }
+          
+          .detail-content {
+            .detail-title {
+              font-size: 14px;
+              font-weight: 500;
+              color: #303133;
+              margin-bottom: 8px;
+              line-height: 1.4;
+            }
+            
+            .detail-meta {
+              .meta-item {
+                display: flex;
+                align-items: center;
+                margin-bottom: 4px;
+                
+                .meta-label {
+                  font-size: 12px;
+                  color: #909399;
+                  margin-right: 6px;
+                  min-width: 40px;
+                }
+                
+                .meta-value {
+                  font-size: 12px;
+                  color: #606266;
+                  flex: 1;
+                  line-height: 1.4;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
     h4 {
       margin: 20px 0 12px 0;
       font-size: 14px;
@@ -616,6 +1283,64 @@ onMounted(() => {
   
   .mt-4 {
     margin-top: 16px;
+  }
+  
+  .ml-1 {
+    margin-left: 4px;
+  }
+}
+
+// 手机端对话框样式
+:deep(.mobile-dialog) {
+  margin: 5vw auto;
+  max-width: 95vw;
+  
+  .el-dialog__body {
+    padding: 15px 20px;
+  }
+  
+  .mobile-dialog-footer {
+    display: flex;
+    gap: 12px;
+    padding: 15px 0 0;
+    border-top: 1px solid #f0f0f0;
+    
+    .el-button {
+      flex: 1;
+      min-height: 44px;
+      font-size: 15px;
+    }
+  }
+  
+  .mobile-detail {
+    :deep(.el-descriptions) {
+      .el-descriptions__label {
+        width: 80px !important;
+        text-align: right;
+        padding-right: 8px;
+        font-size: 13px;
+      }
+      
+      .el-descriptions__content {
+        font-size: 14px;
+        padding-left: 8px;
+      }
+      
+      .el-descriptions__cell {
+        padding: 8px 12px;
+      }
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .assessment-records-container {
+    .card {
+      margin-bottom: 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
   }
 }
 </style> 
