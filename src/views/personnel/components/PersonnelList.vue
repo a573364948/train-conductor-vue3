@@ -1,7 +1,7 @@
 <template>
-  <div class="personnel-list">
+  <div class="personnel-list" :class="{ 'mobile-layout': isMobile }">
     <!-- Tab分栏显示系统 -->
-    <div class="personnel-tabs">
+    <div class="personnel-tabs" :class="{ 'mobile-tabs': isMobile }">
       <el-tabs 
         v-model="activeTab" 
         @tab-change="handleTabChange"
@@ -11,55 +11,53 @@
           <template #label>
             <span class="tab-label">
               <el-icon><User /></el-icon>
-              全部
+              <span v-if="!isMobile">全部</span>
               <el-badge :value="totalCount" :max="9999" class="tab-badge" />
             </span>
           </template>
-          <!-- Tab内容将由下方统一的表格区域显示 -->
         </el-tab-pane>
         
         <el-tab-pane name="formal">
           <template #label>
             <span class="tab-label">
               <el-icon><UserFilled /></el-icon>
-              正式启用
+              <span v-if="!isMobile">正式启用</span>
+              <span v-else>正式</span>
               <el-badge :value="activeCount" :max="9999" class="tab-badge" type="success" />
             </span>
           </template>
-          <!-- Tab内容将由下方统一的表格区域显示 -->
         </el-tab-pane>
         
         <el-tab-pane name="temp">
           <template #label>
             <span class="tab-label">
               <el-icon><Clock /></el-icon>
-              临时启用
+              <span v-if="!isMobile">临时启用</span>
+              <span v-else>临时</span>
               <el-badge :value="tempCount" :max="9999" class="tab-badge" type="warning" />
             </span>
           </template>
-          <!-- Tab内容将由下方统一的表格区域显示 -->
         </el-tab-pane>
         
         <el-tab-pane name="backup">
           <template #label>
             <span class="tab-label">
               <el-icon><Star /></el-icon>
-              后备
+              <span v-if="!isMobile">后备</span>
               <el-badge :value="backupCount" :max="9999" class="tab-badge" type="info" />
             </span>
           </template>
-          <!-- Tab内容将由下方统一的表格区域显示 -->
         </el-tab-pane>
         
         <el-tab-pane name="applications" @click="handlePendingApplicationsClick">
           <template #label>
             <span class="tab-label applications-tab" @click="handlePendingApplicationsClick">
               <el-icon><Files /></el-icon>
-              待处理申请
+              <span v-if="!isMobile">待处理申请</span>
+              <span v-else>申请</span>
               <el-badge :value="pendingCount" :max="9999" class="tab-badge" type="success" />
             </span>
           </template>
-          <!-- 此Tab用于跳转到申请管理，不显示内容 -->
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -74,18 +72,18 @@
         @close="clearFilter"
       >
         <template #default>
-          <span>点击Tab标签可切换筛选条件，点击"全部"标签查看所有人员</span>
+          <span>{{ isMobile ? '点击Tab切换筛选' : '点击Tab标签可切换筛选条件，点击"全部"标签查看所有人员' }}</span>
         </template>
       </el-alert>
     </div>
 
     <!-- 智能搜索和筛选区域 -->
-    <div class="search-section">
+    <div class="search-section" :class="{ 'mobile-search': isMobile }">
       <div class="main-search">
         <el-input 
           v-model="searchKeyword"
-          placeholder="输入工号或姓名快速查询..."
-          size="large"
+          :placeholder="isMobile ? '输入工号或姓名...' : '输入工号或姓名快速查询...'"
+          :size="isMobile ? 'default' : 'large'"
           prefix-icon="Search"
           clearable
           :loading="searchLoading"
@@ -93,17 +91,22 @@
           @clear="clearSearch"
         >
           <template #append>
-            <el-button @click="toggleAdvancedFilter" :type="showAdvancedFilter ? 'primary' : 'default'">
-              高级筛选 <el-icon><Filter /></el-icon>
+            <el-button 
+              @click="toggleAdvancedFilter" 
+              :type="showAdvancedFilter ? 'primary' : 'default'"
+              :size="isMobile ? 'default' : 'large'"
+            >
+              <span v-if="!isMobile">高级筛选</span>
+              <el-icon><Filter /></el-icon>
             </el-button>
           </template>
         </el-input>
       </div>
       
       <!-- 高级筛选面板 -->
-      <div v-show="showAdvancedFilter" class="advanced-filter-panel">
+      <div v-show="showAdvancedFilter" class="advanced-filter-panel" :class="{ 'mobile-filter': isMobile }">
         <el-row :gutter="16">
-          <el-col :span="6" :xs="24" :sm="12" :md="6">
+          <el-col :span="isMobile ? 24 : 6" :xs="24" :sm="12" :md="6">
             <div class="filter-item">
               <label class="filter-label">部门</label>
               <el-select 
@@ -125,7 +128,7 @@
             </div>
           </el-col>
           
-          <el-col :span="4" :xs="24" :sm="12" :md="4">
+          <el-col :span="isMobile ? 24 : 4" :xs="24" :sm="12" :md="4">
             <div class="filter-item">
               <label class="filter-label">职工类型</label>
               <el-select 
@@ -141,9 +144,9 @@
             </div>
           </el-col>
           
-          <el-col :span="6" :xs="24" :sm="12" :md="6">
+          <el-col :span="isMobile ? 24 : 6" :xs="24" :sm="12" :md="6">
             <div class="filter-item">
-              <label class="filter-label">启用日期范围</label>
+              <label class="filter-label">{{ isMobile ? '启用日期' : '启用日期范围' }}</label>
               <el-date-picker 
                 v-model="advancedFilters.enableDateRange"
                 type="daterange"
@@ -156,7 +159,7 @@
             </div>
           </el-col>
           
-          <el-col :span="4" :xs="24" :sm="12" :md="4">
+          <el-col :span="isMobile ? 24 : 4" :xs="24" :sm="12" :md="4">
             <div class="filter-item">
               <label class="filter-label">状态筛选</label>
               <el-select 
@@ -174,11 +177,16 @@
             </div>
           </el-col>
           
-          <el-col :span="4" :xs="24" :sm="24" :md="4">
-            <div class="filter-actions">
-              <el-button @click="clearAllFilters" :disabled="!hasActiveFilters">
+          <el-col :span="isMobile ? 24 : 4" :xs="24" :sm="24" :md="4">
+            <div class="filter-actions" :class="{ 'mobile-filter-actions': isMobile }">
+              <el-button 
+                @click="clearAllFilters" 
+                :disabled="!hasActiveFilters"
+                :class="{ 'mobile-clear-btn': isMobile }"
+              >
                 <el-icon><RefreshLeft /></el-icon>
-                清空筛选
+                <span v-if="!isMobile">清空筛选</span>
+                <span v-else>清空</span>
               </el-button>
             </div>
           </el-col>
@@ -190,11 +198,12 @@
     <div v-if="hasActiveFilters" class="filter-result-stats">
       <el-alert type="info" :closable="false">
         <template #title>
-          <div class="stats-title">
-            <span>筛选结果：从 {{ totalCount }} 人中筛选出 {{ filteredPersonnel.length }} 人</span>
+          <div class="stats-title" :class="{ 'mobile-stats': isMobile }">
+            <span>{{ isMobile ? `筛选：${filteredPersonnel.length}/${totalCount}人` : `筛选结果：从 ${totalCount} 人中筛选出 ${filteredPersonnel.length} 人` }}</span>
             <el-button type="text" size="small" @click="exportFilteredResults">
               <el-icon><Download /></el-icon>
-              导出筛选结果
+              <span v-if="!isMobile">导出筛选结果</span>
+              <span v-else>导出</span>
             </el-button>
           </div>
         </template>
@@ -213,19 +222,22 @@
     </div>
 
     <!-- 批量操作工具栏 -->
-    <div v-if="hasSelection" class="batch-toolbar">
+    <div v-if="hasSelection" class="batch-toolbar" :class="{ 'mobile-batch': isMobile }">
       <div class="selection-info">
         <span>已选择 {{ selectedCount }} 人</span>
         <el-button type="text" @click="clearSelection">取消选择</el-button>
       </div>
       <div class="batch-actions">
-        <el-button type="primary" @click="batchExport">
+        <el-button type="primary" @click="batchExport" :size="isMobile ? 'default' : 'default'">
           <el-icon><Download /></el-icon>
-          导出选中
+          <span v-if="!isMobile">导出选中</span>
+          <span v-else>导出</span>
         </el-button>
         <el-dropdown @command="handleBatchCommand">
-          <el-button>
-            批量操作 <el-icon><ArrowDown /></el-icon>
+          <el-button :size="isMobile ? 'default' : 'default'">
+            <span v-if="!isMobile">批量操作</span>
+            <span v-else>操作</span>
+            <el-icon><ArrowDown /></el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
@@ -239,146 +251,257 @@
     </div>
 
     <!-- 操作栏 -->
-    <div class="action-bar">
+    <div class="action-bar" :class="{ 'mobile-actions': isMobile }">
       <div class="left-actions">
-        <el-button type="primary" @click="openAddDialog">
+        <el-button 
+          type="primary" 
+          @click="openAddDialog"
+          :size="isMobile ? 'default' : 'default'"
+          :class="{ 'mobile-btn': isMobile }"
+        >
           <el-icon><Plus /></el-icon>
-          新增人员
+          <span v-if="!isMobile">新增人员</span>
+          <span v-else>新增</span>
         </el-button>
-        <el-button @click="exportPersonnel">
+        <el-button 
+          @click="exportPersonnel"
+          :size="isMobile ? 'default' : 'default'"
+          :class="{ 'mobile-btn': isMobile }"
+        >
           <el-icon><Download /></el-icon>
-          导出人员
+          <span v-if="!isMobile">导出人员</span>
+          <span v-else>导出</span>
         </el-button>
-        <el-button type="warning" @click="openBackupDialog">
+        <el-button 
+          type="warning" 
+          @click="openBackupDialog"
+          :size="isMobile ? 'default' : 'default'"
+          :class="{ 'mobile-btn': isMobile }"
+        >
           <el-icon><FolderOpened /></el-icon>
-          数据备份
+          <span v-if="!isMobile">数据备份</span>
+          <span v-else>备份</span>
         </el-button>
       </div>
       
       <div class="right-actions">
-        <el-button @click="syncData">
+        <el-button 
+          @click="syncData"
+          :size="isMobile ? 'default' : 'default'"
+          :class="{ 'mobile-btn': isMobile }"
+        >
           <el-icon><Refresh /></el-icon>
-          同步数据
+          <span v-if="!isMobile">同步数据</span>
+          <span v-else>同步</span>
         </el-button>
       </div>
     </div>
 
-    <!-- 人员列表 -->
-    <div class="personnel-table" v-loading="loading">
-      <el-table 
-        :data="paginatedPersonnel" 
-        stripe 
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column 
-          type="selection" 
-          width="55"
-          :selectable="() => true"
-        />
-        <el-table-column 
-          prop="employeeId" 
-          label="工号" 
-          width="120" 
-          sortable="custom"
-          :class-name="getSortClass('employeeId')"
-          @sort-change="() => handleSort('employeeId')"
+    <!-- 人员列表 - PC端表格 / 手机端卡片 -->
+    <div class="personnel-content" v-loading="loading">
+      <!-- PC端表格显示 -->
+      <div v-if="!isMobile" class="personnel-table">
+        <el-table 
+          :data="paginatedPersonnel" 
+          stripe 
+          @selection-change="handleSelectionChange"
         >
-          <template #header>
-            <span class="sortable-header" @click="handleSort('employeeId')">
-              工号
-              <span v-if="sortConfig.column === 'employeeId'" class="sort-indicator">
-                {{ sortConfig.direction === 'asc' ? '↑' : '↓' }}
+          <el-table-column 
+            type="selection" 
+            width="55"
+            :selectable="() => true"
+          />
+          <el-table-column 
+            prop="employeeId" 
+            label="工号" 
+            width="120" 
+            sortable="custom"
+            :class-name="getSortClass('employeeId')"
+            @sort-change="() => handleSort('employeeId')"
+          >
+            <template #header>
+              <span class="sortable-header" @click="handleSort('employeeId')">
+                工号
+                <span v-if="sortConfig.column === 'employeeId'" class="sort-indicator">
+                  {{ sortConfig.direction === 'asc' ? '↑' : '↓' }}
+                </span>
               </span>
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column 
-          prop="name" 
-          label="姓名" 
-          width="120" 
-          sortable="custom"
-          :class-name="getSortClass('name')"
+            </template>
+          </el-table-column>
+          <el-table-column 
+            prop="name" 
+            label="姓名" 
+            width="120" 
+            sortable="custom"
+            :class-name="getSortClass('name')"
+          >
+            <template #header>
+              <span class="sortable-header" @click="handleSort('name')">
+                姓名
+                <span v-if="sortConfig.column === 'name'" class="sort-indicator">
+                  {{ sortConfig.direction === 'asc' ? '↑' : '↓' }}
+                </span>
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column 
+            prop="department" 
+            label="部门" 
+            min-width="150" 
+            sortable="custom"
+            :class-name="getSortClass('department')"
+          >
+            <template #header>
+              <span class="sortable-header" @click="handleSort('department')">
+                部门
+                <span v-if="sortConfig.column === 'department'" class="sort-indicator">
+                  {{ sortConfig.direction === 'asc' ? '↑' : '↓' }}
+                </span>
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="职工类型" width="100">
+            <template #default="{ row }">
+              <el-tag :type="getEmployeeTypeTagType(row.employeeId)" size="small">
+                {{ getEmployeeType(row.employeeId) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column 
+            label="启用日期" 
+            width="120" 
+            sortable="custom"
+            :class-name="getSortClass('enableDate')"
+          >
+            <template #header>
+              <span class="sortable-header" @click="handleSort('enableDate')">
+                启用日期
+                <span v-if="sortConfig.column === 'enableDate'" class="sort-indicator">
+                  {{ sortConfig.direction === 'asc' ? '↑' : '↓' }}
+                </span>
+              </span>
+            </template>
+            <template #default="{ row }">
+              <span class="enable-date">{{ getLatestEnableDate(row.employeeId) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="{ row }">
+              <el-tag :type="getStatusTagType(row.status)" size="small">
+                {{ row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="150" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" text @click="editPerson(row)">
+                <el-icon><Edit /></el-icon>
+                编辑
+              </el-button>
+              <el-button type="info" size="small" text @click="viewPersonDetail(row)">
+                详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 手机端卡片显示 -->
+      <div v-else class="mobile-cards">
+        <div 
+          v-for="person in paginatedPersonnel" 
+          :key="person.employeeId" 
+          class="person-card"
+          @click="viewPersonDetail(person)"
         >
-          <template #header>
-            <span class="sortable-header" @click="handleSort('name')">
-              姓名
-              <span v-if="sortConfig.column === 'name'" class="sort-indicator">
-                {{ sortConfig.direction === 'asc' ? '↑' : '↓' }}
-              </span>
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column 
-          prop="department" 
-          label="部门" 
-          min-width="150" 
-          sortable="custom"
-          :class-name="getSortClass('department')"
-        >
-          <template #header>
-            <span class="sortable-header" @click="handleSort('department')">
-              部门
-              <span v-if="sortConfig.column === 'department'" class="sort-indicator">
-                {{ sortConfig.direction === 'asc' ? '↑' : '↓' }}
-              </span>
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="职工类型" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getEmployeeTypeTagType(row.employeeId)" size="small">
-              {{ getEmployeeType(row.employeeId) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column 
-          label="启用日期" 
-          width="120" 
-          sortable="custom"
-          :class-name="getSortClass('enableDate')"
-        >
-          <template #header>
-            <span class="sortable-header" @click="handleSort('enableDate')">
-              启用日期
-              <span v-if="sortConfig.column === 'enableDate'" class="sort-indicator">
-                {{ sortConfig.direction === 'asc' ? '↑' : '↓' }}
-              </span>
-            </span>
-          </template>
-          <template #default="{ row }">
-            <span class="enable-date">{{ getLatestEnableDate(row.employeeId) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="getStatusTagType(row.status)" size="small">
-              {{ row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" size="small" text @click="editPerson(row)">
-              <el-icon><Edit /></el-icon>
-              编辑
-            </el-button>
-            <el-button type="info" size="small" text @click="viewPersonDetail(row)">
-              详情
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          <!-- 选择框 -->
+          <div class="card-checkbox">
+            <el-checkbox 
+              :model-value="isPersonSelected(person)"
+              @change="(checked) => handleCardSelection(person, checked)"
+              @click.stop
+            />
+          </div>
+          
+          <!-- 人员信息 -->
+          <div class="card-content">
+            <div class="card-header">
+              <div class="person-info">
+                <div class="person-name">{{ person.name }}</div>
+                <div class="person-id">{{ person.employeeId }}</div>
+              </div>
+              <div class="person-status">
+                <el-tag :type="getStatusTagType(person.status)" size="small">
+                  {{ person.status }}
+                </el-tag>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <div class="info-row">
+                <div class="info-item">
+                  <span class="info-label">部门</span>
+                  <span class="info-value">{{ person.department }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">类型</span>
+                  <el-tag :type="getEmployeeTypeTagType(person.employeeId)" size="small">
+                    {{ getEmployeeType(person.employeeId) }}
+                  </el-tag>
+                </div>
+              </div>
+              
+              <div class="info-row">
+                <div class="info-item">
+                  <span class="info-label">启用日期</span>
+                  <span class="enable-date">{{ getLatestEnableDate(person.employeeId) || '-' }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="card-actions" @click.stop>
+              <el-button 
+                type="primary" 
+                size="small" 
+                @click="editPerson(person)"
+                class="mobile-action-btn"
+              >
+                <el-icon><Edit /></el-icon>
+                编辑
+              </el-button>
+              <el-button 
+                type="info" 
+                size="small" 
+                @click="viewPersonDetail(person)"
+                class="mobile-action-btn"
+              >
+                <el-icon><View /></el-icon>
+                详情
+              </el-button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 无数据状态 -->
+        <div v-if="paginatedPersonnel.length === 0" class="empty-state">
+          <el-empty :description="searchKeyword ? '未找到匹配的人员' : '暂无人员数据'">
+            <el-button type="primary" @click="openAddDialog">添加人员</el-button>
+          </el-empty>
+        </div>
+      </div>
 
       <!-- 分页 -->
-      <div class="pagination-wrapper">
+      <div class="pagination-wrapper" :class="{ 'mobile-pagination': isMobile }">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :total="filteredPersonnel.length"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
+          :page-sizes="isMobile ? [10, 20, 50] : [10, 20, 50, 100]"
+          :layout="isMobile ? 'total, prev, pager, next' : 'total, sizes, prev, pager, next, jumper'"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
+          :small="isMobile"
         />
       </div>
     </div>
@@ -387,23 +510,38 @@
     <el-dialog 
       v-model="dialogVisible" 
       :title="isEditing ? '编辑人员信息' : '新增人员'"
-      width="600px"
+      :width="isMobile ? '95%' : '600px'"
+      :class="{ 'mobile-dialog': isMobile }"
     >
       <el-form 
         ref="formRef" 
         :model="form" 
-        label-width="100px"
+        :label-width="isMobile ? '80px' : '100px'"
       >
         <el-form-item label="工号" required>
-          <el-input v-model="form.employeeId" placeholder="请输入工号" :disabled="isEditing" />
+          <el-input 
+            v-model="form.employeeId" 
+            placeholder="请输入工号" 
+            :disabled="isEditing"
+            :size="isMobile ? 'default' : 'default'"
+          />
         </el-form-item>
         
         <el-form-item label="姓名" required>
-          <el-input v-model="form.name" placeholder="请输入姓名" />
+          <el-input 
+            v-model="form.name" 
+            placeholder="请输入姓名"
+            :size="isMobile ? 'default' : 'default'"
+          />
         </el-form-item>
         
         <el-form-item label="部门" required>
-          <el-select v-model="form.department" placeholder="请选择部门" style="width: 100%">
+          <el-select 
+            v-model="form.department" 
+            placeholder="请选择部门" 
+            style="width: 100%"
+            :size="isMobile ? 'default' : 'default'"
+          >
             <el-option label="客运段" value="客运段" />
             <el-option label="机务段" value="机务段" />
             <el-option label="车辆段" value="车辆段" />
@@ -412,7 +550,12 @@
         </el-form-item>
         
         <el-form-item label="状态" required>
-          <el-select v-model="form.status" placeholder="请选择状态" style="width: 100%">
+          <el-select 
+            v-model="form.status" 
+            placeholder="请选择状态" 
+            style="width: 100%"
+            :size="isMobile ? 'default' : 'default'"
+          >
             <el-option label="正式启用" value="正式启用" />
             <el-option label="临时启用" value="临时启用" />
             <el-option label="后备" value="后备" />
@@ -426,22 +569,36 @@
             type="textarea"
             :rows="3"
             placeholder="请输入备注信息（可选）"
+            :size="isMobile ? 'default' : 'default'"
           />
         </el-form-item>
       </el-form>
       
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitForm">
-          {{ isEditing ? '更新' : '保存' }}
-        </el-button>
+        <div class="dialog-footer" :class="{ 'mobile-dialog-footer': isMobile }">
+          <el-button @click="dialogVisible = false" :size="isMobile ? 'default' : 'default'">
+            取消
+          </el-button>
+          <el-button 
+            type="primary" 
+            @click="submitForm"
+            :size="isMobile ? 'default' : 'default'"
+          >
+            {{ isEditing ? '更新' : '保存' }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
 
     <!-- 人员详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="人员详情" width="500px">
-      <div v-if="selectedPerson" class="person-detail">
-        <el-descriptions :column="1" border>
+    <el-dialog 
+      v-model="detailDialogVisible" 
+      title="人员详情" 
+      :width="isMobile ? '95%' : '500px'"
+      :class="{ 'mobile-dialog': isMobile }"
+    >
+      <div v-if="selectedPerson" class="person-detail" :class="{ 'mobile-detail': isMobile }">
+        <el-descriptions :column="1" border :size="isMobile ? 'default' : 'default'">
           <el-descriptions-item label="工号">
             {{ selectedPerson.employeeId }}
           </el-descriptions-item>
@@ -466,6 +623,13 @@
           </el-descriptions-item>
         </el-descriptions>
       </div>
+      
+             <template #footer v-if="isMobile">
+         <div class="mobile-dialog-footer">
+           <el-button @click="detailDialogVisible = false" size="default">关闭</el-button>
+           <el-button v-if="selectedPerson" type="primary" @click="editPerson(selectedPerson)" size="default">编辑</el-button>
+         </div>
+       </template>
     </el-dialog>
 
     <!-- 人员管理数据备份对话框 -->
@@ -478,7 +642,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { 
   Plus, 
@@ -494,7 +658,8 @@ import {
   ArrowDown,
   Edit,
   Delete,
-  FolderOpened
+  FolderOpened,
+  View
 } from '@element-plus/icons-vue'
 import { usePersonnelStore } from '@/stores/personnel'
 import { useApplicationStore } from '@/stores/applications'
@@ -1102,7 +1267,40 @@ const handleSelectionChange = (selection: EnhancedConductor[]) => {
 // 生命周期
 onMounted(async () => {
   await initializeAllData()
+  checkMobileDevice()
+  window.addEventListener('resize', handleResize)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+// 移动端检测
+const isMobile = ref(false)
+
+const checkMobileDevice = () => {
+  const width = window.innerWidth
+  isMobile.value = width <= 768
+}
+
+const handleResize = () => {
+  checkMobileDevice()
+}
+
+// 手机端卡片选择相关函数
+const isPersonSelected = (person: EnhancedConductor): boolean => {
+  return selectedRows.value.has(person.id)
+}
+
+const handleCardSelection = (person: EnhancedConductor, checked: any) => {
+  const isChecked = Boolean(checked)
+  if (isChecked) {
+    selectedRows.value.add(person.id)
+  } else {
+    selectedRows.value.delete(person.id)
+  }
+  updateSelectAllState()
+}
 </script>
 
 <style lang="scss" scoped>
@@ -1547,49 +1745,388 @@ onMounted(async () => {
 // 响应式设计
 @media (max-width: 768px) {
   .personnel-list {
+    &.mobile-layout {
+      padding: 8px;
+    }
+    
     .personnel-tabs {
-      :deep(.el-tabs__nav-wrap) {
-        padding: 4px 12px;
-      }
-      
-      :deep(.el-tabs__item) {
-        padding: 8px 12px;
-        margin-right: 4px;
-        font-size: 12px;
+      &.mobile-tabs {
+        margin-bottom: 12px;
+        border-radius: 8px;
         
-        .tab-label {
-          gap: 4px;
-          font-size: 12px;
+        :deep(.el-tabs__nav-wrap) {
+          padding: 4px 8px;
+        }
+        
+        :deep(.el-tabs__item) {
+          padding: 8px 10px;
+          margin-right: 2px;
+          font-size: 11px;
+          min-height: 36px;
           
-          .el-icon {
-            font-size: 14px;
-          }
-          
-          .tab-badge {
-            :deep(.el-badge__content) {
-              font-size: 10px;
-              height: 14px;
-              line-height: 14px;
-              padding: 0 4px;
+          .tab-label {
+            gap: 3px;
+            font-size: 11px;
+            
+            .el-icon {
+              font-size: 13px;
+            }
+            
+            .tab-badge {
+              :deep(.el-badge__content) {
+                font-size: 9px;
+                height: 12px;
+                line-height: 12px;
+                padding: 0 3px;
+                min-width: 12px;
+              }
             }
           }
         }
       }
     }
     
-    .action-bar {
-      flex-direction: column;
-      gap: 12px;
-      align-items: stretch;
+    .search-section {
+      &.mobile-search {
+        margin-bottom: 12px;
+        
+        .main-search {
+          .el-input {
+            :deep(.el-input__wrapper) {
+              font-size: 14px;
+            }
+            
+            :deep(.el-input-group__append) {
+              .el-button {
+                padding: 8px 12px;
+                
+                .el-icon {
+                  font-size: 16px;
+                }
+              }
+            }
+          }
+        }
+        
+        .advanced-filter-panel {
+          &.mobile-filter {
+            padding: 12px;
+            margin-top: 12px;
+            
+            .filter-item {
+              margin-bottom: 12px;
+              
+              .filter-label {
+                font-size: 12px;
+                margin-bottom: 4px;
+              }
+            }
+            
+            .filter-actions {
+              &.mobile-filter-actions {
+                padding-top: 0;
+                
+                .mobile-clear-btn {
+                  width: 100%;
+                  margin-top: 8px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    .filter-result-stats {
+      margin-bottom: 12px;
       
-      .left-actions, .right-actions {
-        justify-content: center;
+      .stats-title {
+        &.mobile-stats {
+          flex-direction: column;
+          gap: 8px;
+          align-items: flex-start;
+        }
+      }
+    }
+    
+    .batch-toolbar {
+      &.mobile-batch {
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 12px;
+        
+        .selection-info,
+        .batch-actions {
+          justify-content: center;
+        }
+      }
+    }
+    
+    .action-bar {
+      &.mobile-actions {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+        margin-bottom: 12px;
+        
+        .left-actions, .right-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          justify-content: stretch;
+        }
+        
+        .left-actions {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+        
+        .mobile-btn {
+          min-height: 44px;
+          font-size: 14px;
+          padding: 10px 8px;
+          
+          .el-icon {
+            margin-right: 4px;
+          }
+        }
+      }
+    }
+    
+    // 手机端卡片样式
+    .mobile-cards {
+      .person-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f0f0f0;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+          transform: translateY(-1px);
+        }
+        
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .card-checkbox {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          z-index: 2;
+          
+          :deep(.el-checkbox) {
+            .el-checkbox__input {
+              .el-checkbox__inner {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+              }
+            }
+          }
+        }
+        
+        .card-content {
+          .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            padding-right: 40px; // 为复选框留空间
+            
+            .person-info {
+              .person-name {
+                font-size: 18px;
+                font-weight: 600;
+                color: #303133;
+                margin-bottom: 4px;
+                line-height: 1.3;
+              }
+              
+              .person-id {
+                font-size: 13px;
+                color: #909399;
+                font-family: 'Courier New', monospace;
+                background: rgba(144, 147, 153, 0.1);
+                padding: 2px 6px;
+                border-radius: 4px;
+                display: inline-block;
+              }
+            }
+            
+            .person-status {
+              flex-shrink: 0;
+            }
+          }
+          
+          .card-body {
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+              
+              .info-item {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                
+                &:not(:last-child) {
+                  margin-right: 16px;
+                }
+                
+                .info-label {
+                  font-size: 12px;
+                  color: #909399;
+                  margin-bottom: 2px;
+                  font-weight: 500;
+                }
+                
+                .info-value {
+                  font-size: 14px;
+                  color: #606266;
+                  font-weight: 500;
+                }
+                
+                .enable-date {
+                  font-size: 12px;
+                }
+              }
+            }
+          }
+          
+          .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+            
+            .mobile-action-btn {
+              flex: 1;
+              min-height: 36px;
+              font-size: 13px;
+              
+              .el-icon {
+                margin-right: 4px;
+              }
+            }
+          }
+        }
       }
       
-      .pending-applications-card {
-        .compact-card {
-          .card-content {
-            justify-content: center;
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        background: white;
+        border-radius: 12px;
+        
+        :deep(.el-empty) {
+          .el-empty__description {
+            margin: 12px 0;
+            
+            p {
+              color: #909399;
+              font-size: 14px;
+            }
+          }
+        }
+      }
+    }
+    
+    // 手机端分页
+    .pagination-wrapper {
+      &.mobile-pagination {
+        justify-content: center;
+        margin-top: 20px;
+        
+        :deep(.el-pagination) {
+          .el-pagination__total,
+          .el-pagination__jump {
+            font-size: 12px;
+          }
+          
+          .el-pager {
+            li {
+              min-width: 32px;
+              height: 32px;
+              line-height: 30px;
+              font-size: 13px;
+              margin: 0 2px;
+            }
+          }
+          
+          .btn-prev,
+          .btn-next {
+            min-width: 32px;
+            height: 32px;
+            line-height: 30px;
+          }
+        }
+      }
+    }
+    
+    // 手机端对话框
+    :deep(.mobile-dialog) {
+      margin: 5vw auto;
+      max-width: 95vw;
+      
+      .el-dialog__body {
+        padding: 15px 20px;
+      }
+      
+      .el-form {
+        .el-form-item {
+          margin-bottom: 16px;
+          
+          .el-form-item__label {
+            line-height: 1.4;
+            padding-bottom: 4px;
+          }
+          
+          .el-form-item__content {
+            line-height: 1.4;
+          }
+        }
+      }
+      
+      .mobile-dialog-footer {
+        display: flex;
+        gap: 12px;
+        padding: 15px 0 0;
+        border-top: 1px solid #f0f0f0;
+        
+        .el-button {
+          flex: 1;
+          min-height: 44px;
+          font-size: 15px;
+        }
+      }
+    }
+    
+    // 手机端详情页面
+    .person-detail {
+      &.mobile-detail {
+        :deep(.el-descriptions) {
+          .el-descriptions__label {
+            width: 80px !important;
+            text-align: right;
+            padding-right: 8px;
+            font-size: 13px;
+          }
+          
+          .el-descriptions__content {
+            font-size: 14px;
+            padding-left: 8px;
+          }
+          
+          .el-descriptions__cell {
+            padding: 8px 12px;
           }
         }
       }
