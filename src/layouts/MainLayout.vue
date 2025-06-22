@@ -228,6 +228,17 @@
             circle 
             @click="toggleFullScreen"
           />
+          <!-- 云同步按钮 -->
+          <el-button 
+            @click="showSyncPanel = true" 
+            type="primary" 
+            text
+            class="sync-btn"
+            :class="{ 'mobile-sync-btn': isMobile }"
+          >
+            <el-icon><Upload /></el-icon>
+            <span v-if="!isMobile">云同步</span>
+          </el-button>
         </div>
       </el-header>
       
@@ -240,6 +251,16 @@
         </router-view>
       </el-main>
     </el-container>
+
+    <!-- 云同步面板 -->
+    <el-drawer 
+      v-model="showSyncPanel" 
+      title="云同步管理" 
+      :size="isMobile ? '100%' : '450px'"
+      direction="rtl"
+    >
+      <CloudSync />
+    </el-drawer>
   </el-container>
 </template>
 
@@ -259,10 +280,12 @@ import {
   FullScreen,
   Sunny,
   Moon,
-  Menu
+  Menu,
+  SwitchButton
 } from '@element-plus/icons-vue'
 import { useTheme } from '@/composables/useTheme'
 import { useHotkeys } from '@/composables/useHotkeys'
+import CloudSync from '@/components/CloudSync.vue'
 
 const route = useRoute()
 const isCollapse = ref(false)
@@ -270,6 +293,7 @@ const drawerVisible = ref(false)
 const isMobile = ref(false)
 const { theme, isDark, toggleTheme } = useTheme()
 const { showHotkeyHelp: showHotkeys } = useHotkeys()
+const showSyncPanel = ref(false)
 
 // 检测移动端设备
 const checkMobileDevice = () => {
@@ -485,6 +509,32 @@ onUnmounted(() => {
           height: 44px;
         }
       }
+      
+      // 云同步按钮样式
+      .sync-btn {
+        color: var(--el-color-primary);
+        border: 1px solid var(--el-color-primary-light-7);
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          color: var(--el-color-primary);
+          background: var(--el-color-primary-light-9);
+          border-color: var(--el-color-primary-light-5);
+          transform: translateY(-1px);
+        }
+        
+        &.mobile-sync-btn {
+          padding: 8px 12px;
+          min-width: 70px;
+          height: 36px;
+          font-size: 13px;
+          
+          .el-icon {
+            margin-right: 4px;
+          }
+        }
+      }
     }
   }
   
@@ -655,5 +705,54 @@ onUnmounted(() => {
       width: 260px !important;
     }
   }
+}
+
+// 云同步面板样式
+:deep(.el-drawer) {
+  .el-drawer__header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    margin-bottom: 0;
+    
+    .el-drawer__title {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .el-drawer__close-btn {
+      color: white;
+      
+      &:hover {
+        color: rgba(255, 255, 255, 0.8);
+      }
+    }
+  }
+  
+  .el-drawer__body {
+    padding: 0;
+    background: #f8f9fa;
+  }
+}
+
+// 云同步按钮动画
+@keyframes cloudSync {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+.sync-btn.syncing {
+  animation: cloudSync 2s ease-in-out infinite;
+  
+  .el-icon {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style> 
