@@ -6,28 +6,28 @@
         <el-button 
           type="primary" 
           @click="openApplicationDialog('正式启用')"
-          :size="isMobile ? 'default' : 'default'"
+          :size="isMobile ? 'small' : 'default'"
           :class="{ 'mobile-btn': isMobile }"
         >
-          <el-icon><DocumentAdd /></el-icon>
+          <el-icon v-if="!isMobile"><DocumentAdd /></el-icon>
           <span v-if="!isMobile">正式启用申请</span>
           <span v-else>正式启用</span>
         </el-button>
         <el-button 
           @click="openApplicationDialog('临时启用')"
-          :size="isMobile ? 'default' : 'default'"
+          :size="isMobile ? 'small' : 'default'"
           :class="{ 'mobile-btn': isMobile }"
         >
-          <el-icon><DocumentAdd /></el-icon>
+          <el-icon v-if="!isMobile"><DocumentAdd /></el-icon>
           <span v-if="!isMobile">临时启用申请</span>
           <span v-else>临时启用</span>
         </el-button>
         <el-button 
           @click="openApplicationDialog('免职')"
-          :size="isMobile ? 'default' : 'default'"
+          :size="isMobile ? 'small' : 'default'"
           :class="{ 'mobile-btn': isMobile }"
         >
-          <el-icon><DocumentRemove /></el-icon>
+          <el-icon v-if="!isMobile"><DocumentRemove /></el-icon>
           <span v-if="!isMobile">免职申请</span>
           <span v-else>免职</span>
         </el-button>
@@ -38,20 +38,20 @@
           v-if="selectedApplications.length > 0" 
           type="success" 
           @click="batchApprove"
-          :size="isMobile ? 'default' : 'default'"
+          :size="isMobile ? 'small' : 'default'"
           :class="{ 'mobile-btn': isMobile }"
         >
-          <el-icon><Check /></el-icon>
+          <el-icon v-if="!isMobile"><Check /></el-icon>
           <span v-if="!isMobile">批量通过 ({{ selectedApplications.length }})</span>
           <span v-else>批量通过</span>
         </el-button>
 
         <el-button 
           @click="exportApplications"
-          :size="isMobile ? 'default' : 'default'"
+          :size="isMobile ? 'small' : 'default'"
           :class="{ 'mobile-btn': isMobile }"
         >
-          <el-icon><Download /></el-icon>
+          <el-icon v-if="!isMobile"><Download /></el-icon>
           <span v-if="!isMobile">导出记录</span>
           <span v-else>导出</span>
         </el-button>
@@ -1169,13 +1169,32 @@ onUnmounted(() => {
 .mobile-actions {
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
+  gap: 8px;
 }
 
 .left-actions, .right-actions {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.mobile-actions .left-actions {
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.mobile-actions .right-actions {
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.mobile-btn {
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  min-width: auto !important;
+  height: 32px !important;
+  border-radius: 6px !important;
 }
 
 .mobile-actions .left-actions,
@@ -1184,14 +1203,16 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* 移动端按钮优化 */
-.mobile-btn {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+/* 移动端按钮优化 - 确保一行显示 */
+.mobile-actions .left-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+
+.mobile-actions .right-actions {
+  justify-content: center;
 }
 
 .mobile-btn:active {

@@ -1,8 +1,8 @@
 <template>
-  <div class="dashboard-container">
+  <div class="dashboard-container" :class="{ 'mobile-layout': isMobile }">
     <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stat-cards">
-      <el-col :xs="24" :sm="12" :md="8" :lg="6">
+    <el-row :gutter="isMobile ? 12 : 20" class="stat-cards" :class="{ 'mobile-cards': isMobile }">
+      <el-col :xs="12" :sm="12" :md="8" :lg="6">
         <div class="stat-card">
           <div class="stat-card-icon primary">
             <el-icon><User /></el-icon>
@@ -15,7 +15,7 @@
         </div>
       </el-col>
       
-      <el-col :xs="24" :sm="12" :md="8" :lg="6">
+      <el-col :xs="12" :sm="12" :md="8" :lg="6">
         <div class="stat-card">
           <div class="stat-card-icon success">
             <el-icon><OfficeBuilding /></el-icon>
@@ -28,7 +28,7 @@
         </div>
       </el-col>
       
-      <el-col :xs="24" :sm="12" :md="8" :lg="6">
+      <el-col :xs="12" :sm="12" :md="8" :lg="6">
         <div class="stat-card">
           <div class="stat-card-icon warning">
             <el-icon><TrendCharts /></el-icon>
@@ -41,7 +41,7 @@
         </div>
       </el-col>
       
-      <el-col :xs="24" :sm="12" :md="8" :lg="6">
+      <el-col :xs="12" :sm="12" :md="8" :lg="6">
         <div class="stat-card">
           <div class="stat-card-icon error">
             <el-icon><Warning /></el-icon>
@@ -56,14 +56,14 @@
     </el-row>
     
     <!-- 图表区域 -->
-    <el-row :gutter="20" class="charts-section">
+    <el-row :gutter="isMobile ? 12 : 20" class="charts-section" :class="{ 'mobile-charts': isMobile }">
       <el-col :xs="24" :lg="12">
         <div class="card">
           <div class="card-header">
-            <h3>各部门人员分布</h3>
+            <h3 :class="{ 'mobile-title': isMobile }">各部门人员分布</h3>
           </div>
           <div class="card-body">
-            <div class="chart-container" ref="departmentChartRef"></div>
+            <div class="chart-container" :class="{ 'mobile-chart': isMobile }" ref="departmentChartRef"></div>
           </div>
         </div>
       </el-col>
@@ -71,21 +71,27 @@
       <el-col :xs="24" :lg="12">
         <div class="card">
           <div class="card-header">
-            <h3>月度得分趋势</h3>
+            <h3 :class="{ 'mobile-title': isMobile }">月度得分趋势</h3>
           </div>
           <div class="card-body">
-            <div class="chart-container" ref="trendChartRef"></div>
+            <div class="chart-container" :class="{ 'mobile-chart': isMobile }" ref="trendChartRef"></div>
           </div>
         </div>
       </el-col>
     </el-row>
     
     <!-- 异常数据列表 -->
-    <div class="card anomaly-section">
-      <div class="card-header">
-        <h3>异常数据统计</h3>
-        <el-button type="primary" size="small" @click="exportAnomalyData">
-          导出异常名单
+    <div class="card anomaly-section" :class="{ 'mobile-anomaly': isMobile }">
+      <div class="card-header" :class="{ 'mobile-header': isMobile }">
+        <h3 :class="{ 'mobile-title': isMobile }">异常数据统计</h3>
+        <el-button 
+          type="primary" 
+          :size="isMobile ? 'small' : 'small'" 
+          @click="exportAnomalyData"
+          :class="{ 'mobile-btn': isMobile }"
+        >
+          <span v-if="!isMobile">导出异常名单</span>
+          <span v-else>导出</span>
         </el-button>
       </div>
       <div class="card-body">
@@ -94,13 +100,14 @@
           style="width: 100%"
           v-loading="loading"
           empty-text="暂无异常数据"
+          :size="isMobile ? 'small' : 'default'"
         >
-          <el-table-column prop="id" label="工号" width="100" />
-          <el-table-column prop="name" label="姓名" width="120" />
+          <el-table-column prop="id" label="工号" :width="isMobile ? 80 : 100" />
+          <el-table-column prop="name" label="姓名" :width="isMobile ? 80 : 120" />
           <el-table-column prop="department" label="部门" />
-          <el-table-column prop="absentMonths" label="不在岗月数" width="120">
+          <el-table-column prop="absentMonths" label="不在岗月数" :width="isMobile ? 100 : 120">
             <template #default="{ row }">
-              <el-tag type="danger">{{ row.absentMonths }} 个月</el-tag>
+              <el-tag type="danger" :size="isMobile ? 'small' : 'default'">{{ row.absentMonths }} 个月</el-tag>
             </template>
           </el-table-column>
         </el-table>
@@ -117,6 +124,12 @@ import type { EChartsType } from 'echarts'
 
 const mainStore = useMainStore()
 const loading = computed(() => mainStore.loading)
+
+// 移动端检测
+const isMobile = ref(false)
+const checkMobileDevice = () => {
+  isMobile.value = window.innerWidth <= 768
+}
 
 // 图表引用
 const departmentChartRef = ref<HTMLDivElement>()
@@ -384,6 +397,7 @@ const exportAnomalyData = () => {
 
 // 监听窗口大小变化
 const handleResize = () => {
+  checkMobileDevice()
   departmentChart?.resize()
   trendChart?.resize()
 }
@@ -391,6 +405,9 @@ const handleResize = () => {
 onMounted(async () => {
   try {
     console.log('🚀 Dashboard 开始初始化...')
+    
+    // 初始化移动端检测
+    checkMobileDevice()
     
     // 加载数据
     await mainStore.loadDatabase()
@@ -469,6 +486,258 @@ onUnmounted(() => {
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+  }
+  
+  // 移动端布局优化
+  &.mobile-layout {
+    padding: 12px;
+    
+    .stat-cards.mobile-cards {
+      margin-bottom: 16px;
+      
+      :deep(.el-col) {
+        margin-bottom: 12px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+      
+      .stat-card {
+        padding: 14px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        background: white;
+        text-align: center;
+        
+        .stat-card-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 10px auto;
+          
+          &.primary {
+            background: linear-gradient(135deg, #409eff, #67c23a);
+            color: white;
+          }
+          
+          &.success {
+            background: linear-gradient(135deg, #67c23a, #85ce61);
+            color: white;
+          }
+          
+          &.warning {
+            background: linear-gradient(135deg, #e6a23c, #f7ba2a);
+            color: white;
+          }
+          
+          &.error {
+            background: linear-gradient(135deg, #f56c6c, #f78989);
+            color: white;
+          }
+          
+          .el-icon {
+            font-size: 20px;
+          }
+        }
+        
+        .stat-card-title {
+          font-size: 12px;
+          color: #666;
+          margin-bottom: 6px;
+          font-weight: 500;
+          line-height: 1.2;
+        }
+        
+        .stat-card-value {
+          font-size: 24px;
+          font-weight: 600;
+          color: #333;
+          line-height: 1;
+          
+          .unit {
+            font-size: 14px;
+            color: #999;
+            margin-left: 2px;
+            font-weight: 400;
+          }
+        }
+      }
+    }
+    
+    .charts-section.mobile-charts {
+      margin-bottom: 16px;
+      
+      :deep(.el-col) {
+        margin-bottom: 16px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+      
+      .card {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        
+        .card-header {
+          padding: 16px 16px 12px 16px;
+          border-bottom: 1px solid #f0f0f0;
+          
+          .mobile-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+          }
+        }
+        
+        .card-body {
+          padding: 16px;
+          
+          .chart-container.mobile-chart {
+            height: 220px;
+          }
+        }
+      }
+    }
+    
+    .anomaly-section.mobile-anomaly {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      
+      .card-header.mobile-header {
+        padding: 16px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        .mobile-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #333;
+          margin: 0;
+        }
+        
+        .mobile-btn {
+          padding: 6px 12px;
+          font-size: 12px;
+          min-width: 60px;
+        }
+      }
+      
+      .card-body {
+        padding: 16px;
+        
+        :deep(.el-table) {
+          font-size: 12px;
+          
+          .el-table__header th {
+            padding: 8px 0;
+            font-size: 12px;
+            background: #fafafa;
+          }
+          
+          .el-table__body td {
+            padding: 8px 0;
+          }
+          
+          .cell {
+            padding: 0 8px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// 全局移动端优化
+@media (max-width: 768px) {
+  .dashboard-container {
+    .stat-cards {
+      :deep(.el-row) {
+        margin: 0 -6px;
+      }
+      
+      :deep(.el-col) {
+        padding: 0 6px;
+      }
+    }
+    
+    .charts-section {
+      :deep(.el-row) {
+        margin: 0 -6px;
+      }
+      
+      :deep(.el-col) {
+        padding: 0 6px;
+      }
+    }
+  }
+}
+
+// iPhone SE 等小屏幕适配
+@media (max-width: 375px) {
+  .dashboard-container.mobile-layout {
+    padding: 8px;
+    
+    .stat-cards.mobile-cards {
+      .stat-card {
+        padding: 10px;
+        
+        .stat-card-icon {
+          width: 36px;
+          height: 36px;
+          
+          .el-icon {
+            font-size: 18px;
+          }
+        }
+        
+        .stat-card-title {
+          font-size: 11px;
+          margin-bottom: 4px;
+        }
+        
+        .stat-card-value {
+          font-size: 20px;
+          
+          .unit {
+            font-size: 12px;
+          }
+        }
+      }
+    }
+    
+    .charts-section.mobile-charts {
+      .card {
+        .card-header {
+          padding: 12px;
+        }
+        
+        .card-body {
+          padding: 12px;
+          
+          .chart-container.mobile-chart {
+            height: 200px;
+          }
+        }
+      }
+    }
+    
+    .anomaly-section.mobile-anomaly {
+      .card-header.mobile-header {
+        padding: 12px;
+      }
+      
+      .card-body {
+        padding: 12px;
+      }
     }
   }
 }
