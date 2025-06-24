@@ -7,6 +7,7 @@
  */
 
 import { ref } from 'vue'
+import { getScoreStandards, calculateScoreDistribution } from '@/utils/scoreStandards'
 
 export interface ScoreStatistics {
   mean: number
@@ -105,25 +106,21 @@ export function useScoreDispersion() {
       }
     }
 
-    // 分数段统计
-    const ranges = {
-      '90-100': scores.filter(s => s >= 90 && s <= 100).length,
-      '80-89': scores.filter(s => s >= 80 && s < 90).length,
-      '70-79': scores.filter(s => s >= 70 && s < 80).length,
-      '60-69': scores.filter(s => s >= 60 && s < 70).length,
-      '<60': scores.filter(s => s < 60).length
-    }
-
-    // 计算百分比
-    const total = scores.length
+    // 使用动态分数标准进行分数段统计
+    const scoreDistribution = calculateScoreDistribution(scores)
+    
+    // 转换为旧格式以保持兼容性
+    const ranges: Record<string, number> = {}
     const percentages: Record<string, number> = {}
-    Object.keys(ranges).forEach(range => {
-      const key = range as keyof typeof ranges
-      percentages[range] = Math.round((ranges[key] / total) * 10000) / 100 // 保留2位小数
+    
+    Object.entries(scoreDistribution).forEach(([level, data]) => {
+      ranges[level] = data.count
+      percentages[level] = Math.round(data.percentage * 100) / 100 // 保留2位小数
     })
 
-    // 高分集中度（90分以上占比）
-    const highScoreConcentration = percentages['90-100'] / 100
+    // 高分集中度（优秀等级占比）
+    const excellentLevel = getScoreStandards().find(s => s.level === '优秀')?.level || '优秀'
+    const highScoreConcentration = (percentages[excellentLevel] || 0) / 100
 
     return {
       ranges,
@@ -297,7 +294,8 @@ export function useScoreDispersion() {
       }
 
       // 提取评分数据
-      const scores = records.map(record => record.finalScore || record.totalScore || 100)
+      const maxScore = getScoreStandards().find(s => s.level === '优秀')?.max || 999
+      const scores = records.map(record => record.finalScore || record.totalScore || maxScore)
 
       // 计算统计指标
       const statistics = calculateScoreStatistics(scores)

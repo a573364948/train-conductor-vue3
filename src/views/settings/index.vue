@@ -52,7 +52,7 @@
                 <el-input-number
                   v-model="row.max"
                   :min="row.min + 1"
-                  :max="100"
+                  :max="999"
                   size="small"
                   :disabled="$index === 0"
                 />
@@ -425,7 +425,7 @@ const systemSettings = reactive({
 
 // 得分标准
 const scoreStandards = ref([
-  { level: '优秀', min: 90, max: 100, color: '#4CAF50' },
+  { level: '优秀', min: 90, max: 999, color: '#4CAF50' },
   { level: '良好', min: 80, max: 89, color: '#2196F3' },
   { level: '中等', min: 70, max: 79, color: '#FF9800' },
   { level: '及格', min: 60, max: 69, color: '#F44336' },

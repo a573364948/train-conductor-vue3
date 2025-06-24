@@ -8,6 +8,7 @@
 
 import { ref, computed } from 'vue'
 import { useMainStore } from '@/stores'
+import { getMaxScoreLimit } from '@/utils/scoreStandards'
 import { determineCategory } from '@/utils/department'
 
 export interface ManagementIntensityResult {
@@ -176,10 +177,17 @@ export function useManagementIntensity() {
   }
 
   /**
-   * 获取管理力度等级评估
+   * 获取管理力度等级评估（基于动态分数标准）
    */
   const getManagementLevel = (index: number): ManagementLevel => {
-    if (index >= 80) {
+    const maxScore = getMaxScoreLimit()
+    
+    // 计算相对百分比阈值
+    const threshold1 = maxScore * 0.8  // 80%
+    const threshold2 = maxScore * 0.6  // 60%
+    const threshold3 = maxScore * 0.4  // 40%
+    
+    if (index >= threshold1) {
       return {
         level: '充足',
         color: '#22c55e',
@@ -187,7 +195,7 @@ export function useManagementIntensity() {
         description: '车队管理力度充足，与科室要求基本一致',
         suggestion: '继续保持当前管理标准'
       }
-    } else if (index >= 60) {
+    } else if (index >= threshold2) {
       return {
         level: '适中',
         color: '#f59e0b',
@@ -195,7 +203,7 @@ export function useManagementIntensity() {
         description: '车队管理力度适中，需要持续关注和改进',
         suggestion: '适当提高车队考核标准，向科室标准看齐'
       }
-    } else if (index >= 40) {
+    } else if (index >= threshold3) {
       return {
         level: '不足',
         color: '#ef4444',
@@ -261,16 +269,19 @@ export function useManagementIntensity() {
       let intensityIndex = 0
       let intensityRatio = 0
       
+      const maxScore = getMaxScoreLimit()
+      
       if (officeAvgDeduction > 0) {
         intensityRatio = teamAvgDeduction / officeAvgDeduction
-        intensityIndex = Math.min(intensityRatio * 100, 100) // 最高100分
+        // 使用动态最高分数，而不是固定的100分
+        intensityIndex = Math.min(intensityRatio * maxScore, maxScore)
       } else if (teamAvgDeduction === 0) {
         // 如果两者都为0，说明管理优秀
-        intensityIndex = 100
+        intensityIndex = maxScore
         intensityRatio = 1
       } else {
         // 科室无扣分但车队有扣分，说明管理过度严格
-        intensityIndex = 100
+        intensityIndex = maxScore
         intensityRatio = 1
       }
 
@@ -369,7 +380,10 @@ export function useManagementIntensity() {
     
     let conclusion = `本月车队管理力度指数为${intensityIndex}分，评估为"${managementLevel?.level}"。`
     
-    if (intensityIndex! >= 80) {
+    const maxScore = getMaxScoreLimit()
+    const threshold = maxScore * 0.8
+    
+    if (intensityIndex! >= threshold) {
       conclusion += '车队管理标准与科室基本一致，请继续保持。'
     } else {
       const gap = officeAvgDeduction! - teamAvgDeduction!

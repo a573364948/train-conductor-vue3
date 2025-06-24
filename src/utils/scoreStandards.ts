@@ -14,7 +14,7 @@ export interface ScoreStandard {
  * 默认分数标准
  */
 export const DEFAULT_SCORE_STANDARDS: ScoreStandard[] = [
-  { level: '优秀', min: 90, max: 100, color: '#4CAF50' },
+  { level: '优秀', min: 90, max: 999, color: '#4CAF50' },
   { level: '良好', min: 80, max: 89, color: '#2196F3' },
   { level: '中等', min: 70, max: 79, color: '#FF9800' },
   { level: '及格', min: 60, max: 69, color: '#F44336' },
@@ -34,7 +34,7 @@ export function getScoreStandards(): ScoreStandard[] {
         return parsed.map(item => ({
           level: item.level || '',
           min: Number(item.min) || 0,
-          max: Number(item.max) || 100,
+          max: Number(item.max) || 999,
           color: item.color || '#9E9E9E'
         }))
       }
@@ -149,6 +149,18 @@ export function calculateScoreDistribution(scores: number[]): {
 }
 
 /**
+ * 获取最高分数等级的最大值（用于图表和UI显示）
+ */
+export function getMaxScoreLimit(): number {
+  const standards = getScoreStandards()
+  if (standards.length === 0) return 999
+  
+  // 找到最高等级的最大分数
+  const maxScore = Math.max(...standards.map(std => std.max))
+  return maxScore
+}
+
+/**
  * 计算及格率
  */
 export function calculatePassRate(scores: number[]): number {
@@ -224,8 +236,12 @@ export function validateScoreStandards(standards: ScoreStandard[]): {
   
   // 检查分数范围合理性
   standards.forEach(std => {
-    if (std.min < 0 || std.max > 100) {
-      errors.push(`${std.level}分数范围超出0-100的有效范围`)
+    if (std.min < 0) {
+      errors.push(`${std.level}最小分数不能小于0`)
+    }
+    
+    if (std.max > 999) {
+      errors.push(`${std.level}最大分数不能超过999`)
     }
     
     if (std.min > std.max) {
