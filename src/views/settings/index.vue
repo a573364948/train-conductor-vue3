@@ -28,6 +28,11 @@
         </div>
       </el-tab-pane>
       
+      <!-- 云端同步 -->
+      <el-tab-pane label="云端同步" name="cloud">
+        <CloudSyncSettings />
+      </el-tab-pane>
+      
       <!-- 考核标准 -->
       <el-tab-pane label="考核标准" name="standards">
         <div class="settings-section">
@@ -392,6 +397,7 @@ import { checkStandardItemsFormat, repairStandardItems } from '@/utils/dataRepai
 import { determineCategory } from '@/utils/department'
 import StandardItems from './StandardItems.vue'
 import DataConverter from './DataConverter.vue'
+import CloudSyncSettings from '@/components/CloudSyncSettings.vue'
 import type { UploadFile } from 'element-plus'
 
 const mainStore = useMainStore()

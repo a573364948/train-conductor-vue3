@@ -7,7 +7,10 @@
       "Bash(sed:*)",
       "Bash(npm run type-check:*)",
       "Bash(npx vue-tsc:*)",
-      "Bash(timeout 10s npm run dev:*)"
+      "Bash(timeout 10s npm run dev:*)",
+      "edit",
+      "Bash(ls:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
