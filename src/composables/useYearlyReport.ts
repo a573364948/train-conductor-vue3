@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { useMainStore } from '@/stores'
+import { getScoreStandards, getScoreLevel } from '@/utils/scoreStandards'
 
 export interface YearlyMetric {
   key: string
@@ -488,7 +489,12 @@ export function useYearlyReport() {
         assessmentCount: quarterData.length,
         improvement: Math.random() * 10 - 5, // 简化实现
         topIssues: topIssues.length > 0 ? topIssues : ['无明显问题'],
-        trend: avgScore > 85 ? 'up' as const : avgScore < 75 ? 'down' as const : 'stable' as const
+        trend: (() => {
+          const standards = getScoreStandards()
+          const excellentMin = standards.find(s => s.level === '优秀')?.min || 90
+          const goodMin = standards.find(s => s.level === '良好')?.min || 80
+          return avgScore >= excellentMin ? 'up' as const : avgScore < goodMin ? 'down' as const : 'stable' as const
+        })()
       }
     })
   }
@@ -700,8 +706,13 @@ export function useYearlyReport() {
         return sum + (baseScore + totalDeduction)
       }, 0) / yearData.length
 
-      // 管理效果评估
-      if (avgScore > 90) {
+      // 管理效果评估（使用动态分数标准）
+      const standards = getScoreStandards()
+      const excellentMin = standards.find(s => s.level === '优秀')?.min || 90
+      const goodMin = standards.find(s => s.level === '良好')?.min || 80
+      const mediumMin = standards.find(s => s.level === '中等')?.min || 70
+      
+      if (avgScore >= excellentMin) {
         insights.push({
           type: 'achievement',
           title: '管理效果卓越',
@@ -715,7 +726,7 @@ export function useYearlyReport() {
             '建立长效机制，保持管理水平的持续性'
           ]
         })
-      } else if (avgScore > 80) {
+      } else if (avgScore >= goodMin) {
         insights.push({
           type: 'opportunity',
           title: '管理水平良好',
@@ -724,12 +735,12 @@ export function useYearlyReport() {
           actionRequired: false,
           suggestions: [
             '识别影响得分提升的关键因素',
-            '重点关注70-80分区间的改进措施',
+            `重点关注${goodMin}-${excellentMin-1}分区间的改进措施`,
             '加强管理精细化程度',
             '推动管理创新和方法优化'
           ]
         })
-      } else if (avgScore > 70) {
+      } else if (avgScore >= mediumMin) {
         insights.push({
           type: 'warning',
           title: '管理水平待提升',
@@ -933,12 +944,17 @@ export function useYearlyReport() {
       })
     }
 
-    if (avgScore > 85) {
+    // 使用动态分数标准进行年度整体管理质量评估
+    const standards = getScoreStandards()
+    const excellentMin = standards.find(s => s.level === '优秀')?.min || 90
+    const goodMin = standards.find(s => s.level === '良好')?.min || 80
+    
+    if (avgScore >= excellentMin) {
       conclusions.push({
         id: 3,
         content: '年度整体管理质量优良，考核标准执行到位，管理规范化程度显著提高。'
       })
-    } else if (avgScore > 75) {
+    } else if (avgScore >= goodMin) {
       conclusions.push({
         id: 3,
         content: '年度管理质量良好，仍有提升空间，建议加强薄弱环节的管理力度。'
@@ -988,10 +1004,17 @@ export function useYearlyReport() {
     const monthlyStats = calculateMonthlyStats(yearData)
     
     const avgScore = parseFloat(coreMetrics.find(m => m.key === 'avgScore')?.value || '85')
+    
+    // 使用动态分数标准
+    const { level } = getScoreLevel(avgScore)
+    const standards = getScoreStandards()
+    const excellentMin = standards.find(s => s.level === '优秀')?.min || 90
+    const goodMin = standards.find(s => s.level === '良好')?.min || 80
+    
     const yearlySnapshot: YearlySnapshot = {
       overallScore: avgScore,
-      level: avgScore >= 90 ? '优秀' : avgScore >= 80 ? '良好' : avgScore >= 70 ? '合格' : '待改进',
-      description: `${year}年度管理水平${avgScore >= 85 ? '显著提升' : avgScore >= 75 ? '稳步提升' : '有待提升'}，各项指标${avgScore >= 80 ? '均有改善' : '部分需要重点关注'}。`
+      level,
+      description: `${year}年度管理水平${avgScore >= excellentMin ? '显著提升' : avgScore >= goodMin ? '稳步提升' : '有待提升'}，各项指标${avgScore >= goodMin ? '均有改善' : '部分需要重点关注'}。`
     }
 
     // 生成智能分析数据
@@ -1304,11 +1327,8 @@ export function useYearlyReport() {
         
         const avgScore = monthlyScores.reduce((sum, score) => sum + score, 0) / 12
         
-        // 确定绩效等级
-        let performanceLevel = '待提升'
-        if (avgScore >= 90) performanceLevel = '优秀'
-        else if (avgScore >= 80) performanceLevel = '良好'
-        else if (avgScore >= 70) performanceLevel = '合格'
+        // 使用动态分数标准确定绩效等级
+        const { level: performanceLevel } = getScoreLevel(avgScore)
         
         personnelData.push({
           name,

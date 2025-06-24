@@ -165,6 +165,7 @@ import { Document, Download, View } from '@element-plus/icons-vue'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { useMainStore } from '@/stores'
+import { getPassingScore } from '@/utils/scoreStandards'
 
 const mainStore = useMainStore()
 
@@ -268,7 +269,8 @@ const analyzeMonthlyData = (records: any[]) => {
   const uniquePersons = new Set(records.map(r => r.conductorId)).size
   const scores = records.map(calculateFinalScore)
   const avgScore = scores.reduce((sum, score) => sum + score, 0) / totalRecords
-  const passRate = (scores.filter(score => score >= 60).length / totalRecords) * 100
+  const passingScore = getPassingScore()
+  const passRate = (scores.filter(score => score >= passingScore).length / totalRecords) * 100
 
   // 部门分析
   const deptStats = new Map()
@@ -284,7 +286,7 @@ const analyzeMonthlyData = (records: any[]) => {
 
   const departments = Array.from(deptStats.entries()).map(([name, data]: [string, any]) => {
     const score = data.scores.reduce((sum: number, score: number) => sum + score, 0) / data.scores.length
-    const passRate = (data.scores.filter((score: number) => score >= 60).length / data.scores.length) * 100
+    const passRate = (data.scores.filter((score: number) => score >= passingScore).length / data.scores.length) * 100
     
     return {
       name,

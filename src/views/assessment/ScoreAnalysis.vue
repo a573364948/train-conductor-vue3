@@ -111,7 +111,7 @@
           <el-table-column label="得分等级" width="120">
             <template #default="{ row }">
               <el-tag :type="getScoreLevelType(row.monthlyScore)" size="small">
-                {{ getScoreLevel(row.monthlyScore) }}
+                {{ getScoreLevel(row.monthlyScore).level }}
               </el-tag>
             </template>
           </el-table-column>
@@ -139,6 +139,7 @@ import { useMainStore } from '@/stores'
 import * as echarts from 'echarts'
 import type { EChartsOption } from 'echarts'
 import type { ConductorMonthlyData } from '@/types'
+import { getScoreLevel, getScoreLevelTagType } from '@/utils/scoreStandards'
 
 const mainStore = useMainStore()
 
@@ -310,28 +311,26 @@ const updateCharts = () => {
   departmentCompareChart.setOption(option)
 }
 
-// 获取得分等级
-const getScoreLevel = (score: number) => {
-  if (score >= 90) return '优秀'
-  if (score >= 80) return '良好'
-  if (score >= 70) return '中等'
-  if (score >= 60) return '及格'
-  return '不及格'
-}
-
+// 获取得分等级和类型（使用动态分数标准）
 const getScoreLevelType = (score: number) => {
-  if (score >= 90) return 'success'
-  if (score >= 80) return 'primary'
-  if (score >= 70) return 'warning'
-  if (score >= 60) return 'info'
-  return 'danger'
+  const { level } = getScoreLevel(score)
+  return getScoreLevelTagType(level)
 }
 
 const getScoreClass = (score: number) => {
-  if (score >= 90) return 'score-excellent'
-  if (score >= 80) return 'score-good'
-  if (score >= 60) return 'score-normal'
-  return 'score-poor'
+  const { level } = getScoreLevel(score)
+  // 映射等级到CSS类名
+  switch (level) {
+    case '优秀':
+      return 'score-excellent'
+    case '良好':
+      return 'score-good'
+    case '中等':
+    case '及格':
+      return 'score-normal'
+    default:
+      return 'score-poor'
+  }
 }
 
 // 月份改变

@@ -395,6 +395,7 @@ import { useBackup } from '@/composables/useBackup'
 import { validateImportData, formatDataPreview } from '@/utils/dataImportHelper'
 import { checkStandardItemsFormat, repairStandardItems } from '@/utils/dataRepair'
 import { determineCategory } from '@/utils/department'
+import { validateScoreStandards, saveScoreStandards as saveToStorage, DEFAULT_SCORE_STANDARDS } from '@/utils/scoreStandards'
 import StandardItems from './StandardItems.vue'
 import DataConverter from './DataConverter.vue'
 import CloudSyncSettings from '@/components/CloudSyncSettings.vue'
@@ -481,27 +482,25 @@ const saveSystemSettings = () => {
 
 // 保存得分标准
 const saveScoreStandards = () => {
-  // 验证分数范围
-  for (let i = 0; i < scoreStandards.value.length - 1; i++) {
-    if (scoreStandards.value[i].min !== scoreStandards.value[i + 1].max + 1) {
-      ElMessage.error('分数范围必须连续')
-      return
-    }
+  // 使用工具函数验证分数标准
+  const validation = validateScoreStandards(scoreStandards.value)
+  
+  if (!validation.isValid) {
+    ElMessage.error(`保存失败: ${validation.errors.join('; ')}`)
+    return
   }
   
-  localStorage.setItem('scoreStandards', JSON.stringify(scoreStandards.value))
-  ElMessage.success('得分标准已保存')
+  try {
+    saveToStorage(scoreStandards.value)
+    ElMessage.success('得分标准已保存')
+  } catch (error) {
+    ElMessage.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`)
+  }
 }
 
 // 重置得分标准
 const resetScoreStandards = () => {
-  scoreStandards.value = [
-    { level: '优秀', min: 90, max: 100, color: '#4CAF50' },
-    { level: '良好', min: 80, max: 89, color: '#2196F3' },
-    { level: '中等', min: 70, max: 79, color: '#FF9800' },
-    { level: '及格', min: 60, max: 69, color: '#F44336' },
-    { level: '不及格', min: 0, max: 59, color: '#9E9E9E' }
-  ]
+  scoreStandards.value = [...DEFAULT_SCORE_STANDARDS]
   ElMessage.success('已恢复默认设置')
 }
 

@@ -10,7 +10,11 @@
       "Bash(timeout 10s npm run dev:*)",
       "edit",
       "Bash(ls:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(git remote set-url:*)"
     ],
     "deny": []
   }
