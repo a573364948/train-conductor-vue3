@@ -92,18 +92,44 @@ class CloudSyncService {
     try {
       const apiKey = this.generateApiKey()
       
+      const payload = {
+        data,
+        timestamp: Date.now(),
+        deviceId: this.config.deviceId
+      }
+      
       const response = await fetch(`${this.config.apiBase}?deviceId=${this.config.deviceId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-API-Key': apiKey
         },
-        body: JSON.stringify({
-          data,
-          timestamp: Date.now(),
-          deviceId: this.config.deviceId
-        })
+        body: JSON.stringify(payload)
       })
+
+      // 处理HTTP错误状态
+      if (!response.ok) {
+        let errorMessage = '上传失败'
+        
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.message || errorMessage
+        } catch {
+          // JSON解析失败，使用HTTP状态码
+          if (response.status === 413) {
+            errorMessage = '数据过大，请减少数据量'
+          } else if (response.status === 401) {
+            errorMessage = 'API密钥错误或已过期'
+          } else {
+            errorMessage = `HTTP错误: ${response.status}`
+          }
+        }
+        
+        return {
+          success: false,
+          message: errorMessage
+        }
+      }
 
       const result = await response.json()
       

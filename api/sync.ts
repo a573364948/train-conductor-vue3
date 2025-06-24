@@ -82,6 +82,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end()
   }
 
+  // 检查请求体大小（Vercel限制4.5MB）
+  const contentLength = parseInt(req.headers['content-length'] || '0')
+  if (contentLength > 4 * 1024 * 1024) { // 4MB限制
+    return res.status(413).json({
+      success: false,
+      message: '数据过大，请减少数据量或分批上传'
+    })
+  }
+
   // 验证API密钥
   if (!validateApiKey(req)) {
     return res.status(401).json({
