@@ -177,15 +177,13 @@ export function useManagementIntensity() {
   }
 
   /**
-   * 获取管理力度等级评估（基于动态分数标准）
+   * 获取管理力度等级评估（百分制评估）
    */
   const getManagementLevel = (index: number): ManagementLevel => {
-    const maxScore = getMaxScoreLimit()
-    
-    // 计算相对百分比阈值
-    const threshold1 = maxScore * 0.8  // 80%
-    const threshold2 = maxScore * 0.6  // 60%
-    const threshold3 = maxScore * 0.4  // 40%
+    // 管理力度指数是百分制评估，满分100分
+    const threshold1 = 80  // 80分
+    const threshold2 = 60  // 60分
+    const threshold3 = 40  // 40分
     
     if (index >= threshold1) {
       return {
@@ -265,23 +263,21 @@ export function useManagementIntensity() {
       const officeAvgDeduction = officeDeductions / onDutyCount
       const teamAvgDeduction = teamDeductions / onDutyCount
 
-      // 5. 计算管理力度指数
+      // 5. 计算管理力度指数（百分制）
       let intensityIndex = 0
       let intensityRatio = 0
       
-      const maxScore = getMaxScoreLimit()
-      
       if (officeAvgDeduction > 0) {
         intensityRatio = teamAvgDeduction / officeAvgDeduction
-        // 使用动态最高分数，而不是固定的100分
-        intensityIndex = Math.min(intensityRatio * maxScore, maxScore)
+        // 管理力度指数是百分制，满分100分
+        intensityIndex = Math.min(intensityRatio * 100, 100)
       } else if (teamAvgDeduction === 0) {
         // 如果两者都为0，说明管理优秀
-        intensityIndex = maxScore
+        intensityIndex = 100
         intensityRatio = 1
       } else {
         // 科室无扣分但车队有扣分，说明管理过度严格
-        intensityIndex = maxScore
+        intensityIndex = 100
         intensityRatio = 1
       }
 
@@ -380,8 +376,8 @@ export function useManagementIntensity() {
     
     let conclusion = `本月车队管理力度指数为${intensityIndex}分，评估为"${managementLevel?.level}"。`
     
-    const maxScore = getMaxScoreLimit()
-    const threshold = maxScore * 0.8
+    // 管理力度指数是百分制评估
+    const threshold = 80
     
     if (intensityIndex! >= threshold) {
       conclusion += '车队管理标准与科室基本一致，请继续保持。'

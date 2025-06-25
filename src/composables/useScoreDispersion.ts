@@ -106,8 +106,21 @@ export function useScoreDispersion() {
       }
     }
 
+    // 确保scores数组有效
+    const validScores = scores.filter(score => typeof score === 'number' && !isNaN(score))
+    const totalCount = validScores.length
+
+    if (totalCount === 0) {
+      return {
+        ranges: {},
+        percentages: {},
+        highScoreConcentration: 0,
+        total: 0
+      }
+    }
+
     // 使用动态分数标准进行分数段统计
-    const scoreDistribution = calculateScoreDistribution(scores)
+    const scoreDistribution = calculateScoreDistribution(validScores)
     
     // 转换为旧格式以保持兼容性
     const ranges: Record<string, number> = {}
@@ -120,13 +133,13 @@ export function useScoreDispersion() {
 
     // 高分集中度（优秀等级占比）
     const excellentLevel = getScoreStandards().find(s => s.level === '优秀')?.level || '优秀'
-    const highScoreConcentration = (percentages[excellentLevel] || 0) / 100
+    const highScoreConcentration = percentages[excellentLevel] || 0
 
     return {
       ranges,
       percentages,
       highScoreConcentration,
-      total
+      total: totalCount
     }
   }
 

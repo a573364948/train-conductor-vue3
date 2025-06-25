@@ -136,7 +136,7 @@
       <div class="metrics-overview">
         <h2>一、核心指标概览</h2>
         <el-row :gutter="20">
-          <el-col :span="4" v-for="metric in reportData.coreMetrics" :key="metric.key">
+          <el-col :span="6" v-for="metric in reportData.coreMetrics" :key="metric.key">
             <div class="metric-card" :class="{ 'metric-new': metric.trendClass === 'trend-new' }">
               <div class="metric-value">{{ metric.value }}</div>
               <div class="metric-label">{{ metric.label }}</div>
@@ -149,108 +149,104 @@
         </el-row>
       </div>
 
-      <!-- 管理力度智能分析 -->
-      <div v-if="reportData.managementSnapshot" class="management-analysis-section">
-        <h2>二、管理力度智能分析</h2>
+      <!-- 月度考核质量分析 -->
+      <div v-if="reportData.qualityAnalysis" class="quality-analysis-section">
+        <h2>二、月度考核质量分析</h2>
         
-        <!-- 管理力度概览 -->
+        <!-- 分部门录入时效分析 & 考核与录入时间分布热度分析 -->
         <el-row :gutter="20">
-          <el-col :span="8">
-            <el-card class="management-overview-card">
+          <el-col :span="12">
+            <el-card class="timing-chart-card">
               <template #header>
-                <h3>综合评估</h3>
+                <h3>分部门录入时效分析</h3>
+                <span class="card-desc">各部门平均录入延迟天数对比</span>
               </template>
-              <div class="management-score">
-                <div class="score-circle" :class="`score-${reportData.managementSnapshot.level}`">
-                  <span class="score-value">{{ reportData.managementSnapshot.overallScore }}</span>
-                  <span class="score-unit">分</span>
-                </div>
-                <div class="score-level">{{ reportData.managementSnapshot.level }}</div>
-                <div class="score-description">{{ reportData.managementSnapshot.description }}</div>
+              <div ref="timingAnalysisChart" class="timing-chart" style="height: 350px;"></div>
+
+              <!-- 可编辑说明框 -->
+              <div class="chart-explanation">
+                <el-alert type="info" :closable="false" style="margin-top: 16px;">
+                  <template #title>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <strong>分析说明</strong>
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click="openTextEditor('timingAnalysis')"
+                      >
+                        <el-icon><Edit /></el-icon>
+                      </el-button>
+                    </div>
+                  </template>
+                  <div style="font-size: 13px; line-height: 1.6;">
+                    <div v-html="chartExplanations.timingAnalysis"></div>
+                  </div>
+                </el-alert>
               </div>
             </el-card>
           </el-col>
-          
-          <el-col :span="16">
-            <el-card class="management-radar-card">
+
+          <el-col :span="12">
+            <el-card class="timing-comparison-card">
               <template #header>
-                <h3>五维评估快速预览</h3>
+                <h3>考核与录入时间分布热度分析</h3>
+                <span class="card-desc">每天考核/录入峰值部门数对比</span>
               </template>
-              <div class="quick-preview-grid">
-                <div v-for="(value, key) in reportData.managementSnapshot.indicators" :key="key" class="preview-item">
-                  <div class="preview-label">{{ key }}</div>
-                  <div class="preview-score" :class="getIndicatorClass(value)">{{ value }}分</div>
-                  <div class="preview-level">{{ getIndicatorLevel(value) }}</div>
-                </div>
+              <div ref="timingComparisonChart" class="timing-comparison-chart" style="height: 350px;"></div>
+
+              <!-- 可编辑说明框 -->
+              <div class="chart-explanation">
+                <el-alert type="info" :closable="false" style="margin-top: 16px;">
+                  <template #title>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <strong>分析说明</strong>
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click="openTextEditor('timingComparison')"
+                      >
+                        <el-icon><Edit /></el-icon>
+                      </el-button>
+                    </div>
+                  </template>
+                  <div style="font-size: 13px; line-height: 1.6;">
+                    <div v-html="chartExplanations.timingComparison"></div>
+                  </div>
+                </el-alert>
               </div>
             </el-card>
           </el-col>
         </el-row>
-        
-        <!-- 指标详情 -->
+
+        <!-- 考核力度分析 -->
         <el-row :gutter="20" style="margin-top: 20px;">
           <el-col :span="24">
-            <el-card class="indicators-detail-card">
+            <el-card class="assessment-intensity-card">
               <template #header>
-                <div class="indicators-header">
-                  <h3>管理力度评分详细说明</h3>
-                  <div class="score-calculation">
-                    <span class="calculation-text">综合评分 = (标准一致性 + 考核覆盖率 + 管理严格度 + 问题识别力 + 管理均衡性) ÷ 5</span>
-                  </div>
-                </div>
+                <h3>各部门考核力度分析</h3>
+                <span class="card-desc">热力图显示各部门内不同问题类别的考核占比，颜色越深表示该类别在本部门考核中占比越高</span>
               </template>
-              
-              <!-- 分值详情表格 -->
-              <el-table :data="getScoreBreakdown()" style="width: 100%; margin-bottom: 20px;" stripe>
-                <el-table-column prop="dimension" label="评估维度" width="150" />
-                <el-table-column prop="score" label="得分" width="100" align="center">
-                  <template #default="scope">
-                    <span :class="getIndicatorClass(scope.row.score)" style="font-weight: bold;">
-                      {{ scope.row.score }}分
-                    </span>
+              <div ref="assessmentIntensityHeatmap" style="width: 100%; height: 600px;"></div>
+
+              <!-- 可编辑说明框 -->
+              <div class="chart-explanation">
+                <el-alert type="info" :closable="false" style="margin-top: 16px;">
+                  <template #title>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <strong>分析说明</strong>
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click="openTextEditor('assessmentIntensity')"
+                      >
+                        <el-icon><Edit /></el-icon>
+                      </el-button>
+                    </div>
                   </template>
-                </el-table-column>
-                <el-table-column prop="level" label="等级" width="100" align="center">
-                  <template #default="scope">
-                    <el-tag :type="getIndicatorTagType(scope.row.score)">
-                      {{ getIndicatorLevel(scope.row.score) }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="description" label="详细说明" />
-                <el-table-column prop="suggestion" label="改进建议" width="200" />
-              </el-table>
-              
-              <!-- 综合评分汇总 -->
-              <div class="score-summary">
-                <div class="summary-item">
-                  <span class="summary-label">各维度平均分：</span>
-                  <span class="summary-value">{{ getAverageScore() }}分</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">综合评级：</span>
-                  <el-tag :type="getIndicatorTagType(reportData.managementSnapshot.overallScore)" size="large">
-                    {{ reportData.managementSnapshot.level }}
-                  </el-tag>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">评估结论：</span>
-                  <span class="summary-description">{{ reportData.managementSnapshot.description }}</span>
-                </div>
-              </div>
-              
-              <!-- 传统指标卡片（保留） -->
-              <div class="traditional-indicators" style="margin-top: 20px;">
-                <h4 style="margin-bottom: 15px; color: #666;">五维度评分卡片</h4>
-              <el-row :gutter="20">
-                <el-col :span="4" v-for="(value, key) in reportData.managementSnapshot.indicators" :key="key">
-                  <div class="indicator-item">
-                    <div class="indicator-name">{{ key }}</div>
-                    <div class="indicator-value" :class="getIndicatorClass(value)">{{ value }}分</div>
-                    <div class="indicator-level">{{ getIndicatorLevel(value) }}</div>
+                  <div style="font-size: 13px; line-height: 1.6;">
+                    <div v-html="chartExplanations.assessmentIntensity"></div>
                   </div>
-                </el-col>
-              </el-row>
+                </el-alert>
               </div>
             </el-card>
           </el-col>
@@ -269,7 +265,7 @@
       <div class="charts-section">
         <h2>三、全段整体数据分析图表</h2>
         
-        <!-- 第一行：饼图和时间趋势 -->
+        <!-- 第一行：扣分类别分布和部门在岗人数 -->
         <el-row :gutter="20">
           <el-col :span="12">
             <el-card class="chart-card" shadow="hover">
@@ -287,12 +283,12 @@
             <el-card class="chart-card" shadow="hover">
               <template #header>
                 <div class="chart-header">
-                  <h3>扣分趋势分析</h3>
-                  <span class="chart-desc">科室与车队扣分时间趋势</span>    
+                  <h3>部门在岗人数分布</h3>
+                  <span class="chart-desc">各部门人员配备情况</span>
 
                 </div>
               </template>
-              <div ref="timeTrendChart" style="width: 100%; height: 350px;"></div>
+              <div ref="onDutyChart" style="width: 100%; height: 350px;"></div>
             </el-card>
           </el-col>
         </el-row>
@@ -324,19 +320,19 @@
             </el-card>
           </el-col>
         </el-row>
-        
-        <!-- 第三行：管理力度雷达和评分离散度 -->
+
+        <!-- 第三行：扣分趋势分析和评分离散度分析 -->
         <el-row :gutter="20" style="margin-top: 20px;">
           <el-col :span="12">
             <el-card class="chart-card" shadow="hover">
               <template #header>
                 <div class="chart-header">
-                  <h3>管理力度综合评估</h3>
-                  <span class="chart-desc">五维度雷达分析</span>    
+                  <h3>扣分趋势分析</h3>
+                  <span class="chart-desc">科室与车队扣分时间趋势</span>
 
                 </div>
               </template>
-              <div ref="managementRadarChart" style="width: 100%; height: 350px;"></div>
+              <div ref="timeTrendChart" style="width: 100%; height: 350px;"></div>
             </el-card>
           </el-col>
           <el-col :span="12">
@@ -344,7 +340,7 @@
               <template #header>
                 <div class="chart-header">
                   <h3>评分离散度分析</h3>
-                  <span class="chart-desc">"吃大锅饭"风险评估（分数越高风险越高）</span>    
+                  <span class="chart-desc">"吃大锅饭"风险评估（分数越高风险越高）</span>
 
                 </div>
               </template>
@@ -373,7 +369,7 @@
           </el-col>
         </el-row>
         
-        <!-- 第四行：新增日期分布图表 -->
+        <!-- 第四行：考核质量分析 -->
         <el-row :gutter="20" style="margin-top: 20px;">
           <el-col :span="12">
             <el-card class="chart-card" shadow="hover">
@@ -385,6 +381,27 @@
                 </div>
               </template>
               <div ref="assessDateDistributionChart" style="width: 100%; height: 350px;"></div>
+
+              <!-- 可编辑说明框 -->
+              <div class="chart-explanation">
+                <el-alert type="info" :closable="false" style="margin-top: 16px;">
+                  <template #title>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <strong>分析说明</strong>
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click="openTextEditor('assessDateDistribution')"
+                      >
+                        <el-icon><Edit /></el-icon>
+                      </el-button>
+                    </div>
+                  </template>
+                  <div style="font-size: 13px; line-height: 1.6;">
+                    <div v-html="chartExplanations.assessDateDistribution"></div>
+                  </div>
+                </el-alert>
+              </div>
             </el-card>
           </el-col>
           <el-col :span="12">
@@ -397,37 +414,32 @@
                 </div>
               </template>
               <div ref="entryTimingAnalysisChart" style="width: 100%; height: 350px;"></div>
+
+              <!-- 可编辑说明框 -->
+              <div class="chart-explanation">
+                <el-alert type="info" :closable="false" style="margin-top: 16px;">
+                  <template #title>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <strong>分析说明</strong>
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click="openTextEditor('entryTimingAnalysis')"
+                      >
+                        <el-icon><Edit /></el-icon>
+                      </el-button>
+                    </div>
+                  </template>
+                  <div style="font-size: 13px; line-height: 1.6;">
+                    <div v-html="chartExplanations.entryTimingAnalysis"></div>
+                  </div>
+                </el-alert>
+              </div>
             </el-card>
           </el-col>
         </el-row>
         
-        <!-- 传统图表保留（第五行） -->
-        <el-row :gutter="20" style="margin-top: 20px;">
-          <el-col :span="12">
-            <el-card class="chart-card" shadow="hover">
-              <template #header>
-                <div class="chart-header">
-                  <h3>部门在岗人数分布</h3>
-                  <span class="chart-desc">各部门人员配备情况</span>    
 
-                </div>
-              </template>
-              <div ref="onDutyChart" style="width: 100%; height: 300px;"></div>
-            </el-card>
-          </el-col>
-          <el-col :span="12">
-            <el-card class="chart-card" shadow="hover">
-              <template #header>
-                <div class="chart-header">
-                  <h3>月度奖励分布</h3>
-                  <span class="chart-desc">各部门奖励金额对比</span>    
-
-                </div>
-              </template>
-              <div ref="rewardChart" style="width: 100%; height: 300px;"></div>
-            </el-card>
-          </el-col>
-        </el-row>
       </div>
 
       <!-- 详细分析表格 -->
@@ -606,15 +618,27 @@
               <el-icon><Refresh /></el-icon>
               重置布局
             </el-button>
+            <el-button type="danger" @click="resetToDefaultLayout">
+              <el-icon><Delete /></el-icon>
+              恢复默认布局
+            </el-button>
             <el-button type="warning" @click="autoAdjustAllBlocks">
               <el-icon><MagicStick /></el-icon>
               自动调整大小
+            </el-button>
+            <el-button type="success" @click="optimizeChartDisplay">
+              <el-icon><View /></el-icon>
+              优化图表显示
             </el-button>
           </div>
           <div class="toolbar-right">
             <el-button type="info" @click="addNewPage">
               <el-icon><Plus /></el-icon>
               添加页面
+            </el-button>
+            <el-button type="warning" @click="addTextBox">
+              <el-icon><Edit /></el-icon>
+              添加文本框
             </el-button>
             <el-button type="success" @click="exportFromPreview">
               <el-icon><Download /></el-icon>
@@ -647,6 +671,7 @@
               :key="block.id"
               class="draggable-block"
               :class="{ 'dragging': block.isDragging }"
+              :data-chart-type="block.chartType"
               :style="{
                 position: 'absolute',
                 left: block.x + 'px',
@@ -665,19 +690,32 @@
                     <el-icon><MagicStick /></el-icon>
                   </el-button>
                   <el-dropdown @command="(command) => handleBlockAction(command, block)" trigger="click">
-                    <el-button size="small" type="info" circle title="移动到其他页">
-                      <el-icon><Switch /></el-icon>
+                    <el-button size="small" type="info" circle title="更多操作">
+                      <el-icon><MoreFilled /></el-icon>
                     </el-button>
                     <template #dropdown>
                       <el-dropdown-menu>
-                        <el-dropdown-item 
-                          v-for="targetPage in previewPages" 
-                          :key="targetPage.id" 
+                        <!-- 移动选项 -->
+                        <el-dropdown-item
+                          v-for="targetPage in previewPages"
+                          :key="targetPage.id"
                           :command="`move-to-${targetPage.id}`"
                           :disabled="targetPage.id === page.id"
                         >
                           移动到第{{ targetPage.id }}页
                         </el-dropdown-item>
+
+                        <!-- 文本框特殊操作 -->
+                        <template v-if="block.blockType === 'textbox'">
+                          <el-dropdown-item divided command="edit-textbox">
+                            <el-icon><Edit /></el-icon>
+                            编辑文本
+                          </el-dropdown-item>
+                          <el-dropdown-item command="delete-textbox">
+                            <el-icon><Delete /></el-icon>
+                            删除文本框
+                          </el-dropdown-item>
+                        </template>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -696,16 +734,120 @@
       </div>
     </el-dialog>
 
+    <!-- 图表说明编辑器弹窗 -->
+    <el-dialog
+      v-model="showTextEditor"
+      title="编辑图表说明"
+      width="70%"
+      :top="'8vh'"
+      destroy-on-close
+      append-to-body
+    >
+      <div class="text-editor-container">
+        <!-- 工具栏 -->
+        <div class="editor-toolbar">
+          <div class="toolbar-section">
+            <label>文字格式：</label>
+            <el-button-group>
+              <el-button
+                :type="isBold ? 'primary' : 'default'"
+                size="small"
+                @click="toggleBold"
+                title="加粗 (Ctrl+B)"
+              >
+                <strong>B</strong>
+              </el-button>
+              <el-button
+                :type="isItalic ? 'primary' : 'default'"
+                size="small"
+                @click="toggleItalic"
+                title="斜体 (Ctrl+I)"
+              >
+                <em>I</em>
+              </el-button>
+            </el-button-group>
+          </div>
+
+          <div class="toolbar-section">
+            <label>文字颜色：</label>
+            <el-color-picker
+              v-model="selectedColor"
+              @change="applyColor"
+              size="small"
+              :predefine="colorPresets"
+            />
+          </div>
+
+          <div class="toolbar-section">
+            <label>字体大小：</label>
+            <el-select
+              v-model="selectedFontSize"
+              @change="applyFontSize"
+              size="small"
+              style="width: 100px"
+            >
+              <el-option label="小 (12px)" value="12px" />
+              <el-option label="正常 (13px)" value="13px" />
+              <el-option label="中 (14px)" value="14px" />
+              <el-option label="大 (16px)" value="16px" />
+              <el-option label="特大 (18px)" value="18px" />
+            </el-select>
+          </div>
+        </div>
+
+        <!-- 编辑区域 -->
+        <div class="editor-content">
+          <div class="editor-input-section">
+            <label>编辑内容：</label>
+            <el-input
+              ref="editorTextarea"
+              v-model="editingText"
+              type="textarea"
+              :rows="8"
+              placeholder="请输入图表分析说明..."
+              @keydown="handleKeydown"
+              @select="updateSelection"
+              @click="updateSelection"
+            />
+          </div>
+
+          <div class="editor-preview-section">
+            <label>预览效果：</label>
+            <div class="preview-content" v-html="previewHtml"></div>
+          </div>
+        </div>
+
+        <!-- 快速模板 -->
+        <div class="editor-templates">
+          <label>快速模板：</label>
+          <el-button-group>
+            <el-button size="small" @click="insertTemplate('timing')">时效分析模板</el-button>
+            <el-button size="small" @click="insertTemplate('quality')">质量分析模板</el-button>
+            <el-button size="small" @click="insertTemplate('trend')">趋势分析模板</el-button>
+            <el-button size="small" @click="insertTemplate('suggestion')">建议模板</el-button>
+          </el-button-group>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="cancelEdit">取消</el-button>
+          <el-button @click="clearContent" type="warning">清空内容</el-button>
+          <el-button type="primary" @click="saveEdit">保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Download, TrendCharts, MagicStick, Refresh, Edit, Check, Close, Monitor, Plus, Delete, Switch } from '@element-plus/icons-vue'
+import { Download, TrendCharts, MagicStick, Refresh, Edit, Check, Close, Monitor, Plus, Delete, Switch, MoreFilled, View } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useMainStore } from '@/stores'
-import { useManagementIntensity } from '@/composables/useManagementIntensity'
+
 import { useSegmentCharts } from '@/composables/useSegmentCharts'
 import { useDateSelection } from '@/composables/useDate'
 
@@ -713,16 +855,13 @@ import { useDateSelection } from '@/composables/useDate'
 const mainStore = useMainStore()
 
 // Composables
-const { 
-  calculateOptimizedManagementIntensity
-} = useManagementIntensity()
 
 const {
   getDeductionCategoryPieChartOption,
   getTimeTrendLineChartOption,
   getDeductionCountBarChartOption,
   getTop10IssuesBarChartOption,
-  getManagementIntensityRadarChartOption,
+
   getScoreDispersionChartOption,
   getAssessDateDistributionChartOption,
   getEntryTimingAnalysisChartOption
@@ -744,6 +883,36 @@ const currentStep = ref('')
 // 手动结论分析相关
 const showConclusionEditor = ref(false)
 const editingConclusion = ref(false)
+
+// 图表说明相关
+const chartExplanations = ref({
+  timingAnalysis: '时效分类标准：<span style="color: #52c41a;">5天内（优秀）</span>、<span style="color: #faad14;">6-10天（一般）</span>、<span style="color: #ff4d4f;">10天以上（差）</span>。延迟天数越高的部门需重点关注录入流程优化。',
+  timingComparison: '热度分析：通过对比每日考核与录入的部门数量，识别工作集中度和时间分布规律。峰值差异较大时段需关注工作负荷平衡。',
+  assessmentIntensity: '热力图解读：颜色越深表示该问题类别在对应部门的考核中占比越高。有助于识别各部门重点关注的问题领域和考核侧重点。',
+  assessDateDistribution: '时间规律分析：展示考核工作在月内的时间分布特征。有助于优化考核计划安排和工作负荷分配。',
+  entryTimingAnalysis: '效率评估：通过录入时效分布评估整体工作效率和流程优化空间。及时录入率越高说明工作流程越顺畅。'
+})
+
+// 弹窗编辑器相关
+const showTextEditor = ref(false)
+const currentEditingField = ref('')
+const editingText = ref('')
+const selectedColor = ref('#333333')
+const selectedFontSize = ref('13px')
+const isBold = ref(false)
+const isItalic = ref(false)
+const editorTextarea = ref<HTMLTextAreaElement>()
+const selectionStart = ref(0)
+const selectionEnd = ref(0)
+
+// 颜色预设
+const colorPresets = [
+  '#333333', '#666666', '#999999',
+  '#ff4d4f', '#fa541c', '#fa8c16',
+  '#faad14', '#a0d911', '#52c41a',
+  '#13c2c2', '#1890ff', '#2f54eb',
+  '#722ed1', '#eb2f96'
+]
 const savingConclusion = ref(false)
 const conclusionContent = ref('')
 const selectedTemplate = ref('')
@@ -772,14 +941,18 @@ const categoryPieChart = ref<HTMLElement>()
 const timeTrendChart = ref<HTMLElement>()
 const deductionCountChart = ref<HTMLElement>()
 const top10IssuesChart = ref<HTMLElement>()
-const managementRadarChart = ref<HTMLElement>()
+
 const scoreDispersionChart = ref<HTMLElement>()
 // 新增日期分布图表
 const assessDateDistributionChart = ref<HTMLElement>()
+// 考核力度热力图
+const assessmentIntensityHeatmap = ref<HTMLElement>()
 const entryTimingAnalysisChart = ref<HTMLElement>()
+// 新增考核质量分析图表
+const timingAnalysisChart = ref<HTMLElement>()
+const timingComparisonChart = ref<HTMLElement>()
 // 保留原有图表
 const onDutyChart = ref<HTMLElement>()
-const rewardChart = ref<HTMLElement>()
 const assessmentChart = ref<HTMLElement>()
 const managementChart = ref<HTMLElement>()
 
@@ -788,14 +961,18 @@ let categoryPieChartInstance: echarts.ECharts | null = null
 let timeTrendChartInstance: echarts.ECharts | null = null
 let deductionCountChartInstance: echarts.ECharts | null = null
 let top10IssuesChartInstance: echarts.ECharts | null = null
-let managementRadarChartInstance: echarts.ECharts | null = null
+
 let scoreDispersionChartInstance: echarts.ECharts | null = null
 // 新增日期分布图表实例
 let assessDateDistributionChartInstance: echarts.ECharts | null = null
 let entryTimingAnalysisChartInstance: echarts.ECharts | null = null
+// 考核力度热力图实例
+let assessmentIntensityHeatmapInstance: echarts.ECharts | null = null
+// 新增考核质量分析图表实例
+let timingAnalysisChartInstance: echarts.ECharts | null = null
+let timingComparisonChartInstance: echarts.ECharts | null = null
 // 保留原有图表实例
 let onDutyChartInstance: echarts.ECharts | null = null
-let rewardChartInstance: echarts.ECharts | null = null
 let assessmentChartInstance: echarts.ECharts | null = null
 let managementChartInstance: echarts.ECharts | null = null
 
@@ -806,8 +983,7 @@ const reportData = ref<any>({
   coreMetrics: [] as any[],
   departmentStats: [] as any[],
   conclusions: [] as any[],
-  managementSnapshot: null,
-  managementAnalysis: null
+  qualityAnalysis: null
 })
 
 // 计算属性
@@ -836,6 +1012,8 @@ const handleMonthChange = () => {
     loadPageBreakSettings()
     // 加载该月份保存的结论
     loadSavedConclusion()
+    // 加载该月份保存的图表说明
+    loadSavedExplanations()
     // 自动生成报表
     setTimeout(() => {
       generateComprehensiveReport()
@@ -891,17 +1069,11 @@ const generateComprehensiveReport = async () => {
     // 获取考核数据
     const assessmentData = mainStore.database?.assessmentDB?.[selectedMonth.value] || []
     
-    currentStep.value = '生成管理力度分析...'
-    analysisProgress.value = 50
-    
-    // 整合管理力度分析
-    const managementAnalysis = calculateOptimizedManagementIntensity(selectedMonth.value)
-    
     currentStep.value = '整合分析结果...'
     analysisProgress.value = 70
-    
+
     // 生成增强报表数据
-    const report = generateEnhancedReportData(monthlyData, assessmentData, managementAnalysis)
+    const report = generateEnhancedReportData(monthlyData, assessmentData, null)
     reportData.value = report
     
     currentStep.value = '渲染图表...'
@@ -931,8 +1103,223 @@ const generateComprehensiveReport = async () => {
   }
 }
 
+// 生成考核质量分析数据
+const generateQualityAnalysis = (activeStaff: any[], assessmentData: any[]) => {
+  // 1. 分部门录入时效分析（参考正确算法）
+  const departmentTimingMap = new Map()
+
+  assessmentData.forEach(a => {
+    const dept = a.department || '未知部门'
+    if (!departmentTimingMap.has(dept)) {
+      departmentTimingMap.set(dept, { delays: [], onTimeCount: 0, totalCount: 0 })
+    }
+
+    const deptData = departmentTimingMap.get(dept)
+    deptData.totalCount++
+
+    // 使用正确的算法：assessDate（考核日期）和 assessTime（录入时间）
+    if (a.assessDate && a.assessTime) {
+      const assessDateObj = new Date(a.assessDate)
+      const assessTimeObj = new Date(a.assessTime)
+      const delayDays = Math.round((assessTimeObj.getTime() - assessDateObj.getTime()) / (1000 * 60 * 60 * 24))
+
+      // 确保延迟天数不为负数
+      const actualDelay = Math.max(0, delayDays)
+      deptData.delays.push(actualDelay)
+      if (actualDelay <= 5) deptData.onTimeCount++ // 5天内算及时
+    } else {
+      // 如果没有录入时间，假设延迟3天
+      deptData.delays.push(3)
+    }
+  })
+
+  const departmentTiming = Array.from(departmentTimingMap.entries()).map(([dept, data]) => {
+    const avgDelayDays = data.delays.length > 0 ? Math.round(data.delays.reduce((sum: number, delay: number) => sum + delay, 0) / data.delays.length) : 0
+    const maxDelayDays = data.delays.length > 0 ? Math.max(...data.delays) : 0
+    const onTimeRate = data.totalCount > 0 ? (data.onTimeCount / data.totalCount) * 100 : 0
+
+    let timingLevel = '优秀'
+    let note = '录入及时'
+    if (avgDelayDays > 10) {
+      timingLevel = '较差'
+      note = '录入延迟严重，需改进'
+    } else if (avgDelayDays > 5) {
+      timingLevel = '一般'
+      note = '录入有延迟，需关注'
+    }
+
+    return {
+      department: dept,
+      avgDelayDays,
+      maxDelayDays,
+      onTimeRate,
+      timingLevel,
+      note
+    }
+  }).sort((a, b) => b.avgDelayDays - a.avgDelayDays) // 延迟最高的排在前面
+
+  // 2. 考核和录入时间分布分析
+  const departmentPeakMap = new Map()
+
+  assessmentData.forEach(a => {
+    const dept = a.department || '未知部门'
+    if (!departmentPeakMap.has(dept)) {
+      departmentPeakMap.set(dept, {
+        assessmentDates: new Map(),
+        entryDates: new Map(),
+        totalAssessments: 0
+      })
+    }
+
+    const deptData = departmentPeakMap.get(dept)
+    deptData.totalAssessments++
+
+    // 统计考核日期
+    if (a.assessDate) {
+      const day = new Date(a.assessDate).getDate()
+      deptData.assessmentDates.set(day, (deptData.assessmentDates.get(day) || 0) + 1)
+    }
+
+    // 统计录入日期（使用assessTime字段）
+    if (a.assessTime) {
+      const day = new Date(a.assessTime).getDate()
+      deptData.entryDates.set(day, (deptData.entryDates.get(day) || 0) + 1)
+    }
+  })
+
+  const departmentPeakDays = Array.from(departmentPeakMap.entries()).map(([dept, data]) => {
+    // 找出考核最多的日期
+    let peakAssessmentDate = '无'
+    let peakAssessmentCount = 0
+    let assessmentPattern = '分散'
+
+    if (data.assessmentDates.size > 0) {
+      const maxEntry = Array.from(data.assessmentDates.entries()).reduce((max, current) =>
+        current[1] > max[1] ? current : max
+      )
+      peakAssessmentDate = `${maxEntry[0]}日`
+      peakAssessmentCount = maxEntry[1]
+
+      // 判断考核规律
+      if (peakAssessmentCount >= data.totalAssessments * 0.5) {
+        assessmentPattern = '集中'
+      } else if (peakAssessmentCount >= data.totalAssessments * 0.3) {
+        assessmentPattern = '相对集中'
+      }
+    }
+
+    // 找出录入最多的日期
+    let peakEntryDate = '无'
+    let peakEntryCount = 0
+    let entryPattern = '分散'
+
+    if (data.entryDates.size > 0) {
+      const maxEntry = Array.from(data.entryDates.entries()).reduce((max, current) =>
+        current[1] > max[1] ? current : max
+      )
+      peakEntryDate = `${maxEntry[0]}日`
+      peakEntryCount = maxEntry[1]
+
+      // 判断录入规律
+      if (peakEntryCount >= data.totalAssessments * 0.5) {
+        entryPattern = '集中'
+      } else if (peakEntryCount >= data.totalAssessments * 0.3) {
+        entryPattern = '相对集中'
+      }
+    }
+
+    return {
+      department: dept,
+      peakAssessmentDate,
+      peakAssessmentCount,
+      assessmentPattern,
+      peakEntryDate,
+      peakEntryCount,
+      entryPattern
+    }
+  })
+
+  // 3. 考核力度分析（各部门考核最多的三类扣分类别）
+  const departmentIntensityMap = new Map()
+
+  assessmentData.forEach(a => {
+    const dept = a.department || '未知部门'
+    if (!departmentIntensityMap.has(dept)) {
+      departmentIntensityMap.set(dept, {
+        categories: new Map(),
+        totalAssessments: 0,
+        totalDeductions: 0
+      })
+    }
+
+    const deptData = departmentIntensityMap.get(dept)
+    deptData.totalAssessments++
+
+    if (a.details && Array.isArray(a.details)) {
+      a.details.forEach((detail: any) => {
+        if (detail.deduction && detail.deduction < 0) {
+          const category = detail.category || '其他问题'
+          deptData.categories.set(category, (deptData.categories.get(category) || 0) + 1)
+          deptData.totalDeductions += Math.abs(detail.deduction)
+        }
+      })
+    }
+  })
+
+  const departmentIntensity = Array.from(departmentIntensityMap.entries()).map(([dept, data]) => {
+    // 获取前三类问题
+    const sortedCategories = Array.from(data.categories.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+
+    const topCategory1 = sortedCategories[0] ? { name: sortedCategories[0][0], count: sortedCategories[0][1] } : { name: '无', count: 0 }
+    const topCategory2 = sortedCategories[1] ? { name: sortedCategories[1][0], count: sortedCategories[1][1] } : { name: '无', count: 0 }
+    const topCategory3 = sortedCategories[2] ? { name: sortedCategories[2][0], count: sortedCategories[2][1] } : { name: '无', count: 0 }
+
+    // 计算考核力度评分
+    const intensityScore = data.totalAssessments > 0 ? (data.categories.size * 20 + Math.min(data.totalAssessments * 5, 50)) : 0
+
+    let intensityLevel = '一般'
+    let focusArea = '综合管理'
+
+    if (intensityScore >= 80) {
+      intensityLevel = '严格'
+    } else if (intensityScore >= 60) {
+      intensityLevel = '适中'
+    } else if (intensityScore < 40) {
+      intensityLevel = '宽松'
+    }
+
+    // 根据主要问题类型确定考核重点
+    if (topCategory1.name.includes('安全')) {
+      focusArea = '安全管理'
+    } else if (topCategory1.name.includes('服务')) {
+      focusArea = '服务质量'
+    } else if (topCategory1.name.includes('操作')) {
+      focusArea = '操作规范'
+    }
+
+    return {
+      department: dept,
+      totalAssessments: data.totalAssessments,
+      topCategory1,
+      topCategory2,
+      topCategory3,
+      intensityScore,
+      intensityLevel,
+      focusArea
+    }
+  }).sort((a, b) => b.totalAssessments - a.totalAssessments)
+
+  return {
+    departmentTiming,
+    departmentPeakDays,
+    departmentIntensity
+  }
+}
+
 // 生成增强报表数据（新版本）
-const generateEnhancedReportData = (monthlyData: any, assessmentData: any[], managementAnalysis: any) => {
+const generateEnhancedReportData = (monthlyData: any, assessmentData: any[], managementAnalysis: any = null) => {
   const activeStaff = monthlyData.data.filter((s: any) => s.isActive)
   const totalReward = activeStaff.reduce((sum: number, s: any) => sum + (s.rewardAmount || 0), 0)
   const avgReward = activeStaff.length > 0 ? totalReward / activeStaff.length : 0
@@ -972,41 +1359,17 @@ const generateEnhancedReportData = (monthlyData: any, assessmentData: any[], man
       trendClass: 'trend-down',
       unit: '条'
     },
-    {
-      key: 'managementScore',
-      label: '管理力度综合评分',
-      value: managementAnalysis.success ? managementAnalysis.overallAssessment?.overallScore || 0 : 0,
-      trend: '新增智能评估',
-      trendClass: 'trend-new',
-      unit: '分'
-    }
+
   ]
 
-  // 管理力度快照
-  const managementSnapshot = {
-    overallScore: managementAnalysis.success ? managementAnalysis.overallAssessment?.overallScore || 0 : 0,
-    level: managementAnalysis.success ? managementAnalysis.overallAssessment?.level || '未评估' : '未评估',
-    description: managementAnalysis.success ? managementAnalysis.overallAssessment?.description || '' : '数据不足',
-    indicators: managementAnalysis.success ? {
-      标准一致性: managementAnalysis.indicators?.consistencyIndex || 0,
-      考核覆盖率: managementAnalysis.indicators?.coverageRate || 0,
-      管理严格度: managementAnalysis.indicators?.strictnessIndex || 0,
-      问题识别力: managementAnalysis.indicators?.identificationCapability || 0,
-      管理均衡性: managementAnalysis.indicators?.balanceIndex || 0
-    } : {
-      标准一致性: 0,
-      考核覆盖率: 0,
-      管理严格度: 0,
-      问题识别力: 0,
-      管理均衡性: 0
-    }
-  }
+  // 考核质量分析
+  const qualityAnalysis = generateQualityAnalysis(activeStaff, assessmentData)
 
   // 部门统计
   const departmentStats = calculateDepartmentStats(activeStaff, assessmentData)
   
   // 增强分析结论
-  const conclusions = generateEnhancedConclusions(activeStaff, assessmentData, departmentStats, managementAnalysis)
+  const conclusions = generateEnhancedConclusions(activeStaff, assessmentData, departmentStats, null)
 
   return {
     title: `${selectedMonth.value} 列车长月度报表`,
@@ -1014,8 +1377,7 @@ const generateEnhancedReportData = (monthlyData: any, assessmentData: any[], man
     coreMetrics,
     departmentStats,
     conclusions,
-    managementSnapshot,
-    managementAnalysis
+    qualityAnalysis
   }
 }
 
@@ -1116,7 +1478,7 @@ const calculateDepartmentStats = (activeStaff: any[], assessmentData: any[]) => 
 }
 
 // 生成增强分析结论（新版本）
-const generateEnhancedConclusions = (activeStaff: any[], assessmentData: any[], departmentStats: any[], managementAnalysis: any) => {
+const generateEnhancedConclusions = (activeStaff: any[], assessmentData: any[], departmentStats: any[], managementAnalysis: any = null) => {
   const conclusions = [
     {
       title: '人员在岗情况',
@@ -1147,46 +1509,7 @@ const generateEnhancedConclusions = (activeStaff: any[], assessmentData: any[], 
     }
   ]
   
-  // 添加管理力度分析结论
-  if (managementAnalysis.success) {
-    const overallScore = managementAnalysis.overallAssessment?.overallScore || 0
-    const level = managementAnalysis.overallAssessment?.level || '未评估'
-    
-    conclusions.push({
-      title: '管理力度智能分析',
-      content: `智能分析显示本月管理力度综合评分${overallScore}分，评级为"${level}"。${managementAnalysis.overallAssessment?.description || ''}`,
-      suggestions: managementAnalysis.overallAssessment?.suggestions || [
-        '持续关注管理力度变化',
-        '定期优化管理方式',
-        '加强部门间协调配合'
-      ]
-    })
-    
-    // 根据具体指标添加针对性建议
-    if (managementAnalysis.indicators?.consistencyIndex < 60) {
-      conclusions.push({
-        title: '标准一致性改进',
-        content: `科室与车队考核标准协调性不足，一致性指数仅${managementAnalysis.indicators.consistencyIndex}分。`,
-        suggestions: [
-          '统一科室与车队考核标准',
-          '加强考核培训和沟通',
-          '建立标准化考核流程'
-        ]
-      })
-    }
-    
-    if (managementAnalysis.indicators?.coverageRate < 70) {
-      conclusions.push({
-        title: '考核覆盖率提升',
-        content: `考核覆盖率${managementAnalysis.indicators.coverageRate}%，存在管理盲区。`,
-        suggestions: [
-          '提高日常考核频次',
-          '扩大考核覆盖面',
-          '重点关注未覆盖人员'
-        ]
-      })
-    }
-  }
+  // 管理力度分析结论已移除
   
   return conclusions
 }
@@ -1224,25 +1547,29 @@ const generateConclusions = (activeStaff: any[], assessmentData: any[], departme
   ]
 }
 
-// 渲染图表 - 更新为包含8个核心图表
+// 渲染图表 - 更新为包含9个核心图表
 const renderCharts = () => {
   // 渲染核心图表
   renderCategoryPieChart()
   renderTimeTrendChart()
   renderDeductionCountChart()
   renderTop10IssuesChart()
-  renderManagementRadarChart()
   renderScoreDispersionChart()
-  
+
   // 渲染新增日期分布图表
   renderAssessDateDistributionChart()
   renderEntryTimingAnalysisChart()
-  
+
+  // 渲染考核力度热力图
+  renderAssessmentIntensityHeatmap()
+
+  // 渲染考核质量分析图表
+  renderTimingAnalysisChart()
+  renderTimingComparisonChart()
+
   // 渲染传统图表
   renderOnDutyChart()
-  renderRewardChart()
   renderAssessmentChart()
-  renderManagementChart()
 }
 
 // 新增：渲染扣分类别分布饼图
@@ -1305,18 +1632,7 @@ const renderTop10IssuesChart = () => {
   top10IssuesChartInstance.setOption(option)
 }
 
-// 新增：渲染管理力度雷达图（优化版）
-const renderManagementRadarChart = () => {
-  if (!managementRadarChart.value) return
-  
-  managementRadarChartInstance = echarts.init(managementRadarChart.value)
-  
-  // 使用报表数据中的管理力度分析结果
-  const managementData = reportData.value.managementAnalysis || reportData.value.managementSnapshot
-  const option = getManagementIntensityRadarChartOption(managementData)
-  
-  managementRadarChartInstance.setOption(option)
-}
+
 
 
 
@@ -1453,13 +1769,361 @@ const renderAssessDateDistributionChart = () => {
 // 新增：渲染录入时效性分析图
 const renderEntryTimingAnalysisChart = () => {
   if (!entryTimingAnalysisChart.value) return
-  
+
   entryTimingAnalysisChartInstance = echarts.init(entryTimingAnalysisChart.value)
-  
+
   const assessmentData = mainStore.database?.assessmentDB?.[selectedMonth.value] || []
   const option = getEntryTimingAnalysisChartOption(assessmentData)
-  
+
   entryTimingAnalysisChartInstance.setOption(option)
+}
+
+// 新增：渲染考核质量分析-录入时效性图表
+const renderTimingAnalysisChart = () => {
+  if (!timingAnalysisChart.value || !reportData.value.qualityAnalysis) return
+
+  timingAnalysisChartInstance = echarts.init(timingAnalysisChart.value)
+
+  const timingData = reportData.value.qualityAnalysis.departmentTiming
+
+  const option = {
+    title: {
+      text: '分部门录入时效分析',
+      left: 'center',
+      textStyle: {
+        fontSize: 14,
+        fontWeight: 'bold'
+      }
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
+      formatter: function(params: any) {
+        const data = params[0]
+        const timingInfo = timingData.find((t: any) => t.department === data.name)
+        return `
+          <div style="padding: 6px;">
+            <div style="font-weight: bold; margin-bottom: 3px;">${data.name}</div>
+            <div>平均延迟：${Math.round(data.value)}天</div>
+            <div>最大延迟：${timingInfo?.maxDelayDays || 0}天</div>
+            <div>及时率：${timingInfo?.onTimeRate?.toFixed(1) || 0}%</div>
+            <div>等级：${timingInfo?.timingLevel || '未知'}</div>
+          </div>
+        `
+      }
+    },
+    grid: {
+      left: '5%',
+      right: '3%',
+      bottom: '18%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: timingData.map((item: any) => item.department),
+      axisLabel: {
+        rotate: 45,
+        fontSize: 10,
+        interval: 0 // 显示所有标签
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '延迟天数',
+      nameTextStyle: {
+        fontSize: 11
+      },
+      axisLabel: {
+        formatter: '{value}天',
+        fontSize: 10
+      }
+    },
+    series: [{
+      name: '平均延迟天数',
+      type: 'bar',
+      data: timingData.map((item: any) => ({
+        value: item.avgDelayDays,
+        itemStyle: {
+          color: item.avgDelayDays <= 5 ? '#67c23a' :   // 5天内为优秀（绿色）
+                 item.avgDelayDays <= 10 ? '#e6a23c' :  // 10天内为一般（黄色）
+                 '#f56c6c'                               // 10天以上为较差（红色）
+        }
+      })),
+      label: {
+        show: true,
+        position: 'top',
+        formatter: function(params: any) {
+          return Math.round(params.value) + '天'
+        },
+        fontSize: 9
+      },
+      barWidth: '50%'
+    }]
+  }
+
+  timingAnalysisChartInstance.setOption(option)
+}
+
+// 新增：渲染考核与录入时间分布热度分析图表
+const renderTimingComparisonChart = () => {
+  if (!timingComparisonChart.value || !reportData.value.qualityAnalysis) return
+
+  timingComparisonChartInstance = echarts.init(timingComparisonChart.value)
+
+  const peakData = reportData.value.qualityAnalysis.departmentPeakDays
+
+  // 统计每个日期的考核和录入热度
+  const assessmentHeatMap = new Map<number, { count: number, departments: string[] }>()
+  const entryHeatMap = new Map<number, { count: number, departments: string[] }>()
+
+  // 初始化1-31日的数据
+  for (let day = 1; day <= 31; day++) {
+    assessmentHeatMap.set(day, { count: 0, departments: [] })
+    entryHeatMap.set(day, { count: 0, departments: [] })
+  }
+
+  // 统计每个部门的考核和录入峰值日期
+  peakData.forEach((dept: any) => {
+    // 统计考核峰值日期
+    if (dept.peakAssessmentDate && dept.peakAssessmentDate !== '无') {
+      const dayMatch = dept.peakAssessmentDate.match(/(\d+)日/)
+      if (dayMatch) {
+        const day = parseInt(dayMatch[1])
+        if (day >= 1 && day <= 31) {
+          const dayData = assessmentHeatMap.get(day)!
+          dayData.count++
+          dayData.departments.push(dept.department)
+        }
+      }
+    }
+
+    // 统计录入峰值日期
+    if (dept.peakEntryDate && dept.peakEntryDate !== '无') {
+      const dayMatch = dept.peakEntryDate.match(/(\d+)日/)
+      if (dayMatch) {
+        const day = parseInt(dayMatch[1])
+        if (day >= 1 && day <= 31) {
+          const dayData = entryHeatMap.get(day)!
+          dayData.count++
+          dayData.departments.push(dept.department)
+        }
+      }
+    }
+  })
+
+  // 智能筛选要显示的日期
+  const getDisplayDays = () => {
+    const hasDataDays = []
+    const noDataDays = []
+
+    // 分类有数据和无数据的日期
+    for (let day = 1; day <= 31; day++) {
+      const assessmentCount = assessmentHeatMap.get(day)!.count
+      const entryCount = entryHeatMap.get(day)!.count
+
+      if (assessmentCount > 0 || entryCount > 0) {
+        hasDataDays.push(day)
+      } else {
+        noDataDays.push(day)
+      }
+    }
+
+    // 关键时间节点（总是保留）
+    const keyDays = [1, 15, 31]
+
+    // 从无数据日期中选择要保留的
+    const selectedNoDataDays = []
+
+    // 确保关键日期被保留
+    keyDays.forEach(day => {
+      if (noDataDays.includes(day) && !hasDataDays.includes(day)) {
+        selectedNoDataDays.push(day)
+      }
+    })
+
+    // 根据有数据日期的数量，决定保留多少无数据日期
+    const hasDataCount = hasDataDays.length
+    let targetNoDataCount = 0
+
+    if (hasDataCount < 8) {
+      targetNoDataCount = 8 // 数据少时多保留一些
+    } else if (hasDataCount < 15) {
+      targetNoDataCount = 5 // 中等数据量
+    } else {
+      targetNoDataCount = 3 // 数据多时少保留
+    }
+
+    // 从剩余无数据日期中均匀选择
+    const remainingNoDataDays = noDataDays.filter(day => !selectedNoDataDays.includes(day))
+    const interval = Math.max(1, Math.floor(remainingNoDataDays.length / Math.max(1, targetNoDataCount - selectedNoDataDays.length)))
+
+    for (let i = 0; i < remainingNoDataDays.length && selectedNoDataDays.length < targetNoDataCount; i += interval) {
+      selectedNoDataDays.push(remainingNoDataDays[i])
+    }
+
+    // 合并并排序所有要显示的日期
+    const displayDays = [...hasDataDays, ...selectedNoDataDays].sort((a, b) => a - b)
+    return displayDays
+  }
+
+  const displayDays = getDisplayDays()
+
+  // 生成图表数据
+  const xAxisData = []
+  const assessmentSeriesData = []
+  const entrySeriesData = []
+
+  displayDays.forEach(day => {
+    xAxisData.push(`${day}日`)
+
+    const assessmentData = assessmentHeatMap.get(day)!
+    assessmentSeriesData.push({
+      value: assessmentData.count,
+      departments: assessmentData.departments,
+      day: day
+    })
+
+    const entryData = entryHeatMap.get(day)!
+    entrySeriesData.push({
+      value: entryData.count,
+      departments: entryData.departments,
+      day: day
+    })
+  })
+
+  const maxCount = Math.max(
+    Math.max(...assessmentSeriesData.map(d => d.value)),
+    Math.max(...entrySeriesData.map(d => d.value))
+  )
+
+  const option = {
+    title: {
+      text: '考核与录入热度分析',
+      left: 'center',
+      textStyle: {
+        fontSize: 14,
+        fontWeight: 'bold'
+      }
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
+      formatter: function(params: any) {
+        const day = params[0].name
+        const assessmentInfo = assessmentSeriesData[params[0].dataIndex]
+        const entryInfo = entrySeriesData[params[0].dataIndex]
+
+        return `
+          <div style="padding: 6px;">
+            <div style="font-weight: bold; margin-bottom: 6px;">${day}</div>
+
+            <div style="margin-bottom: 4px;">
+              <span style="color: #409eff;">●</span> 考核峰值：${assessmentInfo.value}个部门
+            </div>
+            ${assessmentInfo.value > 0 ? `
+              <div style="margin-bottom: 4px; margin-left: 12px; font-size: 11px;">
+                ${assessmentInfo.departments.slice(0, 3).map((dept: string) => `• ${dept}`).join('<br/>')}
+                ${assessmentInfo.departments.length > 3 ? '<br/>...' : ''}
+              </div>
+            ` : ''}
+
+            <div style="margin-bottom: 4px;">
+              <span style="color: #67c23a;">●</span> 录入峰值：${entryInfo.value}个部门
+            </div>
+            ${entryInfo.value > 0 ? `
+              <div style="margin-left: 12px; font-size: 11px;">
+                ${entryInfo.departments.slice(0, 3).map((dept: string) => `• ${dept}`).join('<br/>')}
+                ${entryInfo.departments.length > 3 ? '<br/>...' : ''}
+              </div>
+            ` : ''}
+          </div>
+        `
+      }
+    },
+    legend: {
+      data: ['考核峰值', '录入峰值'],
+      top: 35,
+      itemWidth: 12,
+      itemHeight: 8,
+      textStyle: {
+        fontSize: 11
+      }
+    },
+    grid: {
+      left: '5%',
+      right: '3%',
+      bottom: '18%',
+      top: '20%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: xAxisData,
+      axisLabel: {
+        fontSize: 10,
+        interval: displayDays.length > 20 ? 1 : 0, // 根据显示日期数量调整间隔
+        rotate: displayDays.length > 15 ? 45 : 30
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '部门数',
+      nameTextStyle: {
+        fontSize: 11
+      },
+      axisLabel: {
+        formatter: '{value}',
+        fontSize: 10
+      },
+      min: 0,
+      max: Math.max(maxCount + 1, 3) // 确保有足够的显示空间
+    },
+    series: [
+      {
+        name: '考核峰值部门数',
+        type: 'bar',
+        data: assessmentSeriesData.map((item: any) => item.value),
+        itemStyle: {
+          color: '#409eff'
+        },
+        label: {
+          show: true,
+          position: 'top',
+          formatter: function(params: any) {
+            return params.value > 0 ? params.value : ''
+          },
+          fontSize: 9,
+          color: '#409eff'
+        },
+        barWidth: displayDays.length > 15 ? '25%' : '35%'
+      },
+      {
+        name: '录入峰值',
+        type: 'bar',
+        data: entrySeriesData.map((item: any) => item.value),
+        itemStyle: {
+          color: '#67c23a'
+        },
+        label: {
+          show: true,
+          position: 'top',
+          formatter: function(params: any) {
+            return params.value > 0 ? params.value : ''
+          },
+          fontSize: 9,
+          color: '#67c23a'
+        },
+        barWidth: displayDays.length > 15 ? '25%' : '35%'
+      }
+    ]
+  }
+
+  timingComparisonChartInstance.setOption(option)
 }
 
 // 渲染在岗人数图表
@@ -1486,28 +2150,7 @@ const renderOnDutyChart = () => {
   onDutyChartInstance.setOption(option)
 }
 
-// 渲染奖励图表
-const renderRewardChart = () => {
-  if (!rewardChart.value) return
-  
-  rewardChartInstance = echarts.init(rewardChart.value)
-  
-  const depts = reportData.value.departmentStats.map((d: any) => d.department)
-  const rewards = reportData.value.departmentStats.map((d: any) => d.avgReward)
-  
-  const option = {
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: depts },
-    yAxis: { type: 'value', name: '奖励金额(元)' },
-    series: [{
-      type: 'bar',
-      data: rewards,
-      itemStyle: { color: '#67c23a' }
-    }]
-  }
-  
-  rewardChartInstance.setOption(option)
-}
+
 
 // 渲染考核图表
 const renderAssessmentChart = () => {
@@ -1532,29 +2175,229 @@ const renderAssessmentChart = () => {
   assessmentChartInstance.setOption(option)
 }
 
-// 渲染管理力度图表
-const renderManagementChart = () => {
-  if (!managementChart.value) return
-  
-  managementChartInstance = echarts.init(managementChart.value)
-  
-  const depts = reportData.value.departmentStats.map((d: any) => d.department)
-  const avgScores = reportData.value.departmentStats.map((d: any) => d.avgScore)
-  
+// 渲染考核力度热力图
+const renderAssessmentIntensityHeatmap = () => {
+  if (!assessmentIntensityHeatmap.value) return
+
+  assessmentIntensityHeatmapInstance = echarts.init(assessmentIntensityHeatmap.value)
+
+  // 获取考核数据
+  const assessmentData = mainStore.database?.assessmentDB?.[selectedMonth.value] || []
+  console.log('热力图数据调试:', {
+    selectedMonth: selectedMonth.value,
+    assessmentDataLength: assessmentData.length,
+    sampleData: assessmentData.slice(0, 3)
+  })
+
+  // 生成热力图数据
+  const heatmapData = generateHeatmapData(assessmentData)
+  console.log('热力图处理后数据:', heatmapData)
+
   const option = {
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: depts },
-    yAxis: { type: 'value', name: '平均分', min: 80 },
+    title: {
+      text: '',
+      left: 'center',
+      textStyle: {
+        fontSize: 14
+      }
+    },
+    tooltip: {
+      position: 'top',
+      formatter: function(params: any) {
+        const [categoryIndex, deptIndex] = params.data
+        const category = heatmapData.categories[categoryIndex]
+        const department = heatmapData.departments[deptIndex]
+        const percentage = params.value
+        const totalCount = heatmapData.deptTotalCount[department] || 0
+        const actualCount = Math.round((percentage / 100) * totalCount)
+        return `${department}<br/>${category}<br/>占比: ${percentage}%<br/>次数: ${actualCount}/${totalCount}`
+      }
+    },
+    grid: {
+      height: '75%',
+      top: '10%',
+      left: '15%',
+      right: '5%'
+    },
+    xAxis: {
+      type: 'category',
+      data: heatmapData.categories,
+      splitArea: {
+        show: true
+      },
+      axisLabel: {
+        fontSize: 11,
+        rotate: 45,
+        interval: 0
+      }
+    },
+    yAxis: {
+      type: 'category',
+      data: heatmapData.departments,
+      splitArea: {
+        show: true
+      },
+      axisLabel: {
+        fontSize: 11
+      }
+    },
+    visualMap: {
+      min: 0,
+      max: 100, // 百分比最大值为100%
+      calculable: true,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: '2%',
+      splitNumber: 5,
+      inRange: {
+        color: ['#ffffff', '#ffeb3b', '#ff9800', '#f44336', '#b71c1c']
+      },
+      text: ['高占比', '低占比'],
+      formatter: '{value}%',
+      textStyle: {
+        fontSize: 11
+      },
+      itemWidth: 15,
+      itemHeight: 140
+    },
     series: [{
-      type: 'line',
-      data: avgScores,
-      smooth: true,
-      itemStyle: { color: '#409eff' }
+      name: '考核次数',
+      type: 'heatmap',
+      data: heatmapData.data,
+      label: {
+        show: true,
+        fontSize: 10,
+        fontWeight: 'bold',
+        formatter: function(params: any) {
+          return params.value > 0 ? `${params.value}%` : ''
+        },
+        color: function(params: any) {
+          // 根据百分比大小动态调整文字颜色，适配白-黄-橙-红配色
+          const value = params.value
+          if (value === 0) return 'transparent'
+          if (value <= 20) return '#374151'  // 深灰色（白色/浅黄背景）
+          if (value <= 50) return '#1f2937'  // 更深灰色（黄色/橙色背景）
+          return '#ffffff'  // 白色（红色/深红色背景）
+        }
+      },
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowColor: 'rgba(0, 0, 0, 0.5)',
+          borderColor: '#374151',
+          borderWidth: 2
+        }
+      },
+      itemStyle: {
+        borderWidth: 0
+      }
     }]
   }
-  
-  managementChartInstance.setOption(option)
+
+  assessmentIntensityHeatmapInstance.setOption(option)
 }
+
+// 生成热力图数据
+const generateHeatmapData = (assessmentData: any[]) => {
+  // 统计各部门各类别的考核次数
+  const deptCategoryCount: Record<string, Record<string, number>> = {}
+  const deptTotalCount: Record<string, number> = {}
+  const allCategories = new Set<string>()
+  const allDepartments = new Set<string>()
+
+  assessmentData.forEach(record => {
+    const dept = record.department || '未知部门'
+    allDepartments.add(dept)
+
+    // 遍历考核详情，统计各类别
+    if (record.details && Array.isArray(record.details)) {
+      record.details.forEach((detail: any) => {
+        const category = detail.itemCategory || '其他'
+
+        // 排除空类别，但保留"其他"类别
+        if (!category || category.trim() === '') return
+
+        allCategories.add(category)
+
+        if (!deptCategoryCount[dept]) {
+          deptCategoryCount[dept] = {}
+        }
+        if (!deptTotalCount[dept]) {
+          deptTotalCount[dept] = 0
+        }
+
+        deptCategoryCount[dept][category] = (deptCategoryCount[dept][category] || 0) + 1
+        deptTotalCount[dept] += 1
+      })
+    }
+  })
+
+  const departments = Array.from(allDepartments).sort()
+
+  // 计算每个类别的总体热度（所有部门的平均占比）
+  const categoryHeatMap: Record<string, number> = {}
+  Array.from(allCategories).forEach(category => {
+    let totalPercentage = 0
+    let validDeptCount = 0
+
+    departments.forEach(dept => {
+      const totalCount = deptTotalCount[dept] || 0
+      if (totalCount > 0) {
+        const count = deptCategoryCount[dept]?.[category] || 0
+        const percentage = (count / totalCount) * 100
+        totalPercentage += percentage
+        validDeptCount++
+      }
+    })
+
+    // 计算平均占比作为热度指标
+    categoryHeatMap[category] = validDeptCount > 0 ? totalPercentage / validDeptCount : 0
+  })
+
+  // 按热度排序类别，"其他"类别始终放在最后
+  const categories = Array.from(allCategories).sort((a, b) => {
+    // "其他"类别始终排在最后
+    if (a === '其他' && b !== '其他') return 1
+    if (b === '其他' && a !== '其他') return -1
+    if (a === '其他' && b === '其他') return 0
+
+    // 其他类别按热度从高到低排序
+    return categoryHeatMap[b] - categoryHeatMap[a]
+  })
+
+  console.log('热力图数据统计:', {
+    departments,
+    categories,
+    categoryHeatMap,
+    deptCategoryCount,
+    deptTotalCount
+  })
+
+  // 生成热力图数据格式 [categoryIndex, deptIndex, percentage]
+  const data: [number, number, number][] = []
+  let maxValue = 0
+
+  departments.forEach((dept, deptIndex) => {
+    const totalCount = deptTotalCount[dept] || 0
+    categories.forEach((category, categoryIndex) => {
+      const count = deptCategoryCount[dept]?.[category] || 0
+      // 计算占比（百分比）
+      const percentage = totalCount > 0 ? Math.round((count / totalCount) * 100) : 0
+      data.push([categoryIndex, deptIndex, percentage])
+      maxValue = Math.max(maxValue, percentage)
+    })
+  })
+
+  return {
+    data,
+    departments,
+    categories,
+    maxValue: Math.max(maxValue, 1), // 确保最小值为1
+    deptTotalCount // 返回各部门总数，用于tooltip显示
+  }
+}
+
+
 
 // PDF导出 - 支持两种版本和预览
 const exportToPDF = async (version: string = 'screen') => {
@@ -1611,8 +2454,9 @@ const openLayoutPreview = async () => {
 
 // 初始化预览页面
 const initializePreviewPages = () => {
-  // 创建完整的A4报表内容布局
+  // 创建完整的A4报表内容布局 - 7页优化结构
   previewPages.value = [
+    // 第1页：标题 + 核心指标 + 录入时效分析
     {
       id: 1,
       blocks: [
@@ -1621,106 +2465,322 @@ const initializePreviewPages = () => {
           title: '报表标题区',
           content: generateReportHeaderHTML(),
           x: 20,
-          y: 20,
+          y: 50,
           width: 750,
           height: 120,
           zIndex: 1,
           isDragging: false
         },
         {
-          id: 'basicInfo',
+          id: 'coreMetrics',
           title: '一、核心指标概览',
-          content: generateBasicInfoHTML(),
+          content: generateCoreMetricsHTML(),
           x: 20,
-          y: 150,
+          y: 190,
           width: 750,
-          height: 200,
+          height: 250,
           zIndex: 1,
           isDragging: false
         },
         {
-          id: 'managementAnalysis',
-          title: '二、管理力度智能分析',
-          content: generateManagementAnalysisHTML(),
+          id: 'timingAnalysisChart',
+          title: '分部门录入时效分析',
+          content: generateChartPlaceholderHTML('timingAnalysisChart', '分部门录入时效分析'),
           x: 20,
-          y: 370,
+          y: 460,
           width: 750,
-          height: 450, // 增加高度以容纳完整表格
+          height: 300,
           zIndex: 1,
-          isDragging: false
+          isDragging: false,
+          chartType: 'bar'
         },
         {
-          id: 'dataTable',
-          title: '3.4 数据摘要',
-          content: generateDataTableHTML(),
+          id: 'timingAnalysisText',
+          title: '时效分析说明',
+          content: generateTextBoxHTML('时效分类标准：5天内（优秀）、6-10天（一般）、10天以上（差）。延迟天数越高的部门需重点关注录入流程优化。'),
           x: 20,
-          y: 690,
+          y: 780,
           width: 750,
-          height: 200,
+          height: 70,
           zIndex: 1,
-          isDragging: false
+          isDragging: false,
+          blockType: 'textbox'
         }
       ]
     },
+    // 第2页：热度分析 + 考核力度分析
     {
       id: 2,
       blocks: [
         {
-          id: 'chart1',
-          title: '3.1 扣分类别分布',
-          content: generateChartPlaceholderHTML('categoryPieChart', '扣分类别分布饼图'),
+          id: 'qualityAnalysisHeader',
+          title: '二、月度考核质量分析',
+          content: generateQualityAnalysisHeaderHTML(),
           x: 20,
-          y: 20,
+          y: 30,
           width: 750,
-          height: 400,
+          height: 80,
+          zIndex: 1,
+          isDragging: false
+        },
+        {
+          id: 'timingComparisonChart',
+          title: '考核与录入时间分布热度分析',
+          content: generateChartPlaceholderHTML('timingComparisonChart', '考核与录入时间分布热度分析'),
+          x: 20,
+          y: 130,
+          width: 750,
+          height: 280,
+          zIndex: 1,
+          isDragging: false,
+          chartType: 'line'
+        },
+        {
+          id: 'timingComparisonText',
+          title: '热度分析说明',
+          content: generateTextBoxHTML('热度分析：通过对比每日考核与录入的部门数量，识别工作集中度和时间分布规律。峰值差异较大时段需关注工作负荷平衡。'),
+          x: 20,
+          y: 430,
+          width: 750,
+          height: 70,
+          zIndex: 1,
+          isDragging: false,
+          blockType: 'textbox'
+        },
+        {
+          id: 'assessmentIntensityChart',
+          title: '各部门考核力度分析',
+          content: generateChartPlaceholderHTML('assessmentIntensityHeatmap', '各部门考核力度分析'),
+          x: 20,
+          y: 520,
+          width: 750,
+          height: 280,
+          zIndex: 1,
+          isDragging: false,
+          chartType: 'heatmap'
+        },
+        {
+          id: 'assessmentIntensityText',
+          title: '考核力度说明',
+          content: generateTextBoxHTML('热力图解读：颜色越深表示该问题类别在对应部门的考核中占比越高。有助于识别各部门重点关注的问题领域和考核侧重点。'),
+          x: 20,
+          y: 820,
+          width: 750,
+          height: 70,
+          zIndex: 1,
+          isDragging: false,
+          blockType: 'textbox'
+        }
+      ]
+    },
+    // 第3页：全段数据分析开篇 + 扣分类别 + 部门人数
+    {
+      id: 3,
+      blocks: [
+        {
+          id: 'chartsHeader',
+          title: '三、全段整体数据分析图表',
+          content: generateChartsHeaderHTML(),
+          x: 20,
+          y: 50,
+          width: 750,
+          height: 60,
+          zIndex: 1,
+          isDragging: false
+        },
+        {
+          id: 'categoryPieChart',
+          title: '扣分类别分布',
+          content: generateChartPlaceholderHTML('categoryPieChart', '扣分类别分布'),
+          x: 20,
+          y: 130,
+          width: 750,
+          height: 350,
           zIndex: 1,
           isDragging: false,
           chartType: 'pie'
         },
         {
-          id: 'chart2',
-          title: '3.2 各部门扣分次数对比',
-          content: generateChartPlaceholderHTML('deductionCountChart', '部门扣分对比柱状图'),
+          id: 'onDutyChart',
+          title: '部门在岗人数分布',
+          content: generateChartPlaceholderHTML('onDutyChart', '部门在岗人数分布'),
           x: 20,
-          y: 440,
+          y: 500,
           width: 750,
-          height: 400,
+          height: 300,
           zIndex: 1,
           isDragging: false,
           chartType: 'bar'
         }
       ]
     },
+    // 第4页：部门对比分析
     {
-      id: 3,
+      id: 4,
       blocks: [
         {
-          id: 'chart3',
-          title: '3.3 评分离散度分析',
-          content: generateChartPlaceholderHTML('scoreDispersionChart', '评分离散度散点图'),
+          id: 'deductionCountChart',
+          title: '各部门扣分次数对比',
+          content: generateChartPlaceholderHTML('deductionCountChart', '各部门扣分次数对比'),
           x: 20,
-          y: 20,
+          y: 50,
           width: 750,
-          height: 400,
+          height: 350,
+          zIndex: 1,
+          isDragging: false,
+          chartType: 'bar'
+        },
+        {
+          id: 'top10IssuesChart',
+          title: 'Top10 扣分问题排行',
+          content: generateChartPlaceholderHTML('top10IssuesChart', 'Top10 扣分问题排行'),
+          x: 20,
+          y: 420,
+          width: 750,
+          height: 350,
+          zIndex: 1,
+          isDragging: false,
+          chartType: 'bar'
+        }
+      ]
+    },
+    // 第5页：趋势和离散度分析
+    {
+      id: 5,
+      blocks: [
+        {
+          id: 'timeTrendChart',
+          title: '扣分趋势分析',
+          content: generateChartPlaceholderHTML('timeTrendChart', '扣分趋势分析'),
+          x: 20,
+          y: 50,
+          width: 750,
+          height: 300,
+          zIndex: 1,
+          isDragging: false,
+          chartType: 'line'
+        },
+        {
+          id: 'scoreDispersionChart',
+          title: '评分离散度分析',
+          content: generateChartPlaceholderHTML('scoreDispersionChart', '评分离散度分析'),
+          x: 20,
+          y: 370,
+          width: 750,
+          height: 300,
           zIndex: 1,
           isDragging: false,
           chartType: 'scatter'
         },
         {
-          id: 'conclusions',
-          title: '四、分析结论与建议',
-          content: generateConclusionsHTML(),
+          id: 'scoreDispersionText',
+          title: '离散度分析说明',
+          content: generateTextBoxHTML('风险评分逻辑（分数越高风险越高）：90-100分（极高风险）、75-90分（高风险）、25-75分（中等风险）、10-25分（低风险）、1-10分（极低风险）'),
+          x: 20,
+          y: 690,
+          width: 750,
+          height: 80,
+          zIndex: 1,
+          isDragging: false,
+          blockType: 'textbox'
+        }
+      ]
+    },
+    // 第6页：时间分布分析
+    {
+      id: 6,
+      blocks: [
+        {
+          id: 'assessDateDistributionChart',
+          title: '考核日期分布',
+          content: generateChartPlaceholderHTML('assessDateDistributionChart', '考核日期分布'),
+          x: 20,
+          y: 50,
+          width: 750,
+          height: 280,
+          zIndex: 1,
+          isDragging: false,
+          chartType: 'bar'
+        },
+        {
+          id: 'assessDateText',
+          title: '考核日期说明',
+          content: generateTextBoxHTML('时间规律分析：展示考核工作在月内的时间分布特征。有助于优化考核计划安排和工作负荷分配。'),
+          x: 20,
+          y: 350,
+          width: 750,
+          height: 70,
+          zIndex: 1,
+          isDragging: false,
+          blockType: 'textbox'
+        },
+        {
+          id: 'entryTimingAnalysisChart',
+          title: '录入时效性分析',
+          content: generateChartPlaceholderHTML('entryTimingAnalysisChart', '录入时效性分析'),
           x: 20,
           y: 440,
           width: 750,
-          height: 400,
+          height: 280,
+          zIndex: 1,
+          isDragging: false,
+          chartType: 'pie'
+        },
+        {
+          id: 'entryTimingText',
+          title: '录入时效说明',
+          content: generateTextBoxHTML('效率评估：通过录入时效分布评估整体工作效率和流程优化空间。及时录入率越高说明工作流程越顺畅。'),
+          x: 20,
+          y: 740,
+          width: 750,
+          height: 70,
+          zIndex: 1,
+          isDragging: false,
+          blockType: 'textbox'
+        }
+      ]
+    },
+    // 第7页：总结页面
+    {
+      id: 7,
+      blocks: [
+        {
+          id: 'detailedAnalysisHeader',
+          title: '四、详细数据分析',
+          content: generateDetailedAnalysisHeaderHTML(),
+          x: 20,
+          y: 50,
+          width: 750,
+          height: 60,
+          zIndex: 1,
+          isDragging: false
+        },
+        {
+          id: 'departmentStatsTable',
+          title: '部门综合统计表',
+          content: generateDepartmentStatsHTML(),
+          x: 20,
+          y: 130,
+          width: 750,
+          height: 350,
+          zIndex: 1,
+          isDragging: false
+        },
+        {
+          id: 'conclusionsSection',
+          title: '五、分析结论与建议',
+          content: generateConclusionsHTML(),
+          x: 20,
+          y: 500,
+          width: 750,
+          height: 350,
           zIndex: 1,
           isDragging: false
         }
       ]
     }
   ]
-  
+
   // 加载保存的布局设置
   loadLayoutSettings()
   
@@ -1734,14 +2794,18 @@ const initializePreviewPages = () => {
 const generateCoreMetricsHTML = () => {
   const metrics = reportData.value.coreMetrics || []
   return `
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-      ${metrics.map((metric: any) => `
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-          <div style="font-size: 24px; font-weight: bold; color: #333;">${metric.value}</div>
-          <div style="font-size: 14px; color: #666; margin-top: 5px;">${metric.label}</div>
-          <div style="font-size: 12px; color: #999; margin-top: 3px;">${metric.trend}</div>
-        </div>
-      `).join('')}
+    <div style="padding: 15px 0;">
+      <h2 style="font-size: 18px; margin: 0 0 20px 0; color: #333; border-bottom: 2px solid #409eff; padding-bottom: 8px;">一、核心指标概览</h2>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+        ${metrics.map((metric: any) => `
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e9ecef;">
+            <div style="font-size: 24px; font-weight: bold; color: #333; margin-bottom: 8px;">${metric.value}</div>
+            <div style="font-size: 14px; color: #666; margin-bottom: 5px;">${metric.label}</div>
+            ${metric.unit ? `<div style="font-size: 12px; color: #999; margin-bottom: 5px;">${metric.unit}</div>` : ''}
+            <div style="font-size: 12px; color: ${metric.trendClass === 'trend-up' ? '#52c41a' : metric.trendClass === 'trend-down' ? '#ff4d4f' : '#1890ff'};">${metric.trend}</div>
+          </div>
+        `).join('')}
+      </div>
     </div>
   `
 }
@@ -1790,51 +2854,7 @@ const generateBasicInfoHTML = () => {
   `
 }
 
-// 生成管理力度分析HTML
-const generateManagementAnalysisHTML = () => {
-  const snapshot = reportData.value.managementSnapshot
-  if (!snapshot) return '<div>暂无管理力度分析数据</div>'
-  
-  return `
-    <div style="padding: 15px 0;">
-      <h2 style="font-size: 18px; margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #409eff; padding-bottom: 8px;">二、管理力度智能分析</h2>
-      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-        <div style="text-align: center; margin-bottom: 15px;">
-          <span style="font-size: 14px; color: #666;">综合评分：</span>
-          <span style="font-size: 24px; font-weight: bold; color: #409eff; margin: 0 10px;">${snapshot.overallScore}分</span>
-          <span style="font-size: 14px; color: #666;">（${snapshot.level}）</span>
-        </div>
-        <div style="text-align: center; color: #333; font-size: 14px; line-height: 1.6;">
-          <strong>计算公式：</strong>(标准一致性 + 考核覆盖率 + 管理严格度 + 问题识别力 + 管理均衡性) ÷ 5
-        </div>
-      </div>
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr style="background: #f5f5f5;">
-            <th style="border: 1px solid #ddd; padding: 8px; font-size: 14px;">评估维度</th>
-            <th style="border: 1px solid #ddd; padding: 8px; font-size: 14px;">得分</th>
-            <th style="border: 1px solid #ddd; padding: 8px; font-size: 14px;">等级</th>
-            <th style="border: 1px solid #ddd; padding: 8px; font-size: 14px;">说明</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${Object.entries(snapshot.indicators).map(([key, value]: [string, any]) => `
-            <tr>
-              <td style="border: 1px solid #ddd; padding: 8px; font-size: 14px;">${key}</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold; font-size: 14px;">${value}分</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px;">
-                ${value >= 80 ? '优秀' : value >= 70 ? '良好' : value >= 60 ? '一般' : '待改进'}
-              </td>
-              <td style="border: 1px solid #ddd; padding: 8px; font-size: 14px;">
-                ${getIndicatorDescription(key, value)}
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `
-}
+
 
 // 生成数据表格HTML
 const generateDataTableHTML = () => {
@@ -1869,11 +2889,86 @@ const generateDataTableHTML = () => {
   `
 }
 
+// 生成质量分析标题HTML
+const generateQualityAnalysisHeaderHTML = () => {
+  return `
+    <div style="padding: 15px 0;">
+      <h2 style="font-size: 18px; margin: 0; color: #333; border-bottom: 2px solid #409eff; padding-bottom: 8px;">二、月度考核质量分析</h2>
+    </div>
+  `
+}
+
+
+
+// 生成图表分析标题HTML
+const generateChartsHeaderHTML = () => {
+  return `
+    <div style="padding: 15px 0;">
+      <h2 style="font-size: 18px; margin: 0; color: #333; border-bottom: 2px solid #409eff; padding-bottom: 8px;">三、全段整体数据分析图表</h2>
+    </div>
+  `
+}
+
+
+
+// 生成详细分析标题HTML
+const generateDetailedAnalysisHeaderHTML = () => {
+  return `
+    <div style="padding: 15px 0;">
+      <h2 style="font-size: 18px; margin: 0; color: #333; border-bottom: 2px solid #409eff; padding-bottom: 8px;">四、详细数据分析</h2>
+    </div>
+  `
+}
+
+// 生成部门统计表HTML
+const generateDepartmentStatsHTML = () => {
+  const stats = reportData.value.departmentStats || []
+  return `
+    <div style="padding: 10px; border: 1px solid #e9ecef; border-radius: 8px; background: #fff;">
+      <h3 style="font-size: 16px; margin: 0 0 15px 0; color: #333;">部门综合统计表</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+        <thead>
+          <tr style="background: #f5f5f5;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">部门</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">在岗人数</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">总奖励金额</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">人均奖励</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">考核次数</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">总扣分</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">平均得分</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${stats.map((stat: any) => `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${stat.department}</td>
+              <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${stat.onDutyCount}</td>
+              <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${formatCurrency(stat.totalReward)}</td>
+              <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${formatCurrency(stat.avgReward)}</td>
+              <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${stat.assessmentCount}</td>
+              <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${stat.totalDeductions}</td>
+              <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${stat.avgScore.toFixed(1)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `
+}
+
+// 生成独立文本框HTML
+const generateTextBoxHTML = (text: string) => {
+  return `
+    <div style="padding: 12px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; font-size: 14px; line-height: 1.6; color: #333;">
+      ${text}
+    </div>
+  `
+}
+
 // 生成图表占位符HTML
 const generateChartPlaceholderHTML = (chartId: string, chartTitle: string) => {
   return `
-    <div style="padding: 10px;">
-      <h3 style="font-size: 16px; margin: 0 0 10px 0; color: #333; text-align: center;">${chartTitle}</h3>
+    <div style="padding: 10px; border: 1px solid #e9ecef; border-radius: 8px; background: #fff;">
       <div id="preview-${chartId}" style="width: 100%; height: 350px; background: #fafafa; border: 1px dashed #ddd; display: flex; align-items: center; justify-content: center; color: #999;">
         正在加载图表...
       </div>
@@ -1884,11 +2979,11 @@ const generateChartPlaceholderHTML = (chartId: string, chartTitle: string) => {
 // 生成结论HTML
 const generateConclusionsHTML = () => {
   const savedConclusion = getSavedConclusion()
-  
+
   if (savedConclusion?.content) {
     return `
       <div style="padding: 15px 0;">
-        <h2 style="font-size: 18px; margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #409eff; padding-bottom: 8px;">四、分析结论与建议</h2>
+        <h2 style="font-size: 18px; margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #409eff; padding-bottom: 8px;">五、分析结论与建议</h2>
         <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; line-height: 1.6; font-size: 14px;">
           ${savedConclusion.content}
         </div>
@@ -1900,7 +2995,7 @@ const generateConclusionsHTML = () => {
   } else {
     return `
       <div style="padding: 15px 0;">
-        <h2 style="font-size: 18px; margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #409eff; padding-bottom: 8px;">四、分析结论与建议</h2>
+        <h2 style="font-size: 18px; margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #409eff; padding-bottom: 8px;">五、分析结论与建议</h2>
         <div style="background: #f9fafb; padding: 30px; text-align: center; border: 2px dashed #d1d5db; border-radius: 8px; color: #666;">
           暂无结论分析内容，请先添加分析结论
         </div>
@@ -1909,44 +3004,7 @@ const generateConclusionsHTML = () => {
   }
 }
 
-// 获取指标说明
-const getIndicatorDescription = (indicator: string, value: number): string => {
-  const descriptions: Record<string, Record<string, string>> = {
-    '标准一致性': {
-      '80+': '科室与车队考核标准高度一致，管理统一性优秀',
-      '70+': '考核标准基本一致，管理协调性良好',
-      '60+': '考核标准存在差异，需加强协调',
-      '60-': '考核标准差异较大，急需统一管理标准'
-    },
-    '考核覆盖率': {
-      '80+': '考核覆盖面广，管理无死角',
-      '70+': '考核覆盖较好，少量盲区',
-      '60+': '考核覆盖一般，存在管理盲区',
-      '60-': '考核覆盖不足，管理盲区较多'
-    },
-    '管理严格度': {
-      '80+': '管理标准严格，执行力强',
-      '70+': '管理相对严格，执行良好',
-      '60+': '管理标准一般，执行有待加强',
-      '60-': '管理较松散，急需提高标准'
-    },
-    '问题识别力': {
-      '80+': '问题识别敏锐，发现及时',
-      '70+': '问题识别较好，反应及时',
-      '60+': '问题识别一般，反应滞后',
-      '60-': '问题识别不足，反应迟钝'
-    },
-    '管理均衡性': {
-      '80+': '各部门管理均衡，公平性强',
-      '70+': '管理相对均衡，公平性良好',
-      '60+': '管理存在偏差，公平性一般',
-      '60-': '管理失衡，公平性待改善'
-    }
-  }
-  
-  const levelKey = value >= 80 ? '80+' : value >= 70 ? '70+' : value >= 60 ? '60+' : '60-'
-  return descriptions[indicator]?.[levelKey] || '评估中...'
-}
+
 
 // 获取保存的结论
 const getSavedConclusion = () => {
@@ -1970,15 +3028,26 @@ const getSavedConclusion = () => {
 // 渲染预览图表
 const renderPreviewCharts = async () => {
   console.log('🎨 开始渲染预览图表...')
-  
+
   // 等待DOM元素创建
   await nextTick()
-  
+
   // 渲染各个图表
   setTimeout(() => {
+    // 质量分析图表
+    renderPreviewChart('preview-timingAnalysisChart', 'bar')
+    renderPreviewChart('preview-timingComparisonChart', 'line')
+    renderPreviewChart('preview-assessmentIntensityHeatmap', 'heatmap')
+
+    // 整体数据分析图表
     renderPreviewChart('preview-categoryPieChart', 'pie')
+    renderPreviewChart('preview-onDutyChart', 'bar')
     renderPreviewChart('preview-deductionCountChart', 'bar')
+    renderPreviewChart('preview-top10IssuesChart', 'bar')
+    renderPreviewChart('preview-timeTrendChart', 'line')
     renderPreviewChart('preview-scoreDispersionChart', 'scatter')
+    renderPreviewChart('preview-assessDateDistributionChart', 'bar')
+    renderPreviewChart('preview-entryTimingAnalysisChart', 'pie')
   }, 500)
 }
 
@@ -2003,15 +3072,37 @@ const renderPreviewChart = (containerId: string, chartType: string) => {
   const chart = echarts.init(container)
   let option = {}
   
-  // 根据图表类型生成配置
-  switch (chartType) {
-    case 'pie':
+  // 根据图表类型和容器ID生成配置
+  switch (containerId) {
+    case 'preview-categoryPieChart':
       option = getDeductionCategoryPieChartOption(assessmentData)
       break
-    case 'bar':
+    case 'preview-onDutyChart':
+      // 获取在岗人数数据
+      const monthlyData = mainStore.monthlyData.find(m =>
+        m.year === parseInt(selectedMonth.value.split('-')[0]) &&
+        m.month === parseInt(selectedMonth.value.split('-')[1])
+      )
+      if (monthlyData) {
+        const activeStaff = monthlyData.data.filter((s: any) => s.isActive)
+        option = generateOnDutyChartOption(activeStaff)
+      }
+      break
+    case 'preview-deductionCountChart':
       option = getDeductionCountBarChartOption(assessmentData)
       break
-    case 'scatter':
+    case 'preview-top10IssuesChart':
+      option = getTop10IssuesBarChartOption(assessmentData)
+      break
+    case 'preview-timeTrendChart':
+      // 获取多月数据用于趋势分析
+      const monthlyDataForTrend: Record<string, any[]> = {}
+      availableMonths.value.forEach(month => {
+        monthlyDataForTrend[month] = mainStore.database?.assessmentDB?.[month] || []
+      })
+      option = getTimeTrendLineChartOption(monthlyDataForTrend)
+      break
+    case 'preview-scoreDispersionChart':
       {
         // 按部门分组数据
         const departmentData: Record<string, any[]> = {}
@@ -2026,6 +3117,32 @@ const renderPreviewChart = (containerId: string, chartType: string) => {
         option = getScoreDispersionChartOption(dispersionData)
       }
       break
+    case 'preview-assessDateDistributionChart':
+      option = getAssessDateDistributionChartOption(assessmentData)
+      break
+    case 'preview-entryTimingAnalysisChart':
+      option = getEntryTimingAnalysisChartOption(assessmentData)
+      break
+    case 'preview-timingAnalysisChart':
+      // 生成时效分析数据
+      option = generateTimingAnalysisChartOption(assessmentData)
+      break
+    case 'preview-timingComparisonChart':
+      // 生成时间分布对比数据
+      option = generateTimingComparisonChartOption(assessmentData)
+      break
+    case 'preview-assessmentIntensityHeatmap':
+      // 生成考核力度热力图数据
+      option = generateAssessmentIntensityHeatmapOption(assessmentData)
+      break
+    default:
+      // 默认显示简单的占位图表
+      option = {
+        title: { text: '图表加载中...', left: 'center', top: 'middle' },
+        xAxis: { type: 'category', data: [] },
+        yAxis: { type: 'value' },
+        series: [{ type: 'bar', data: [] }]
+      }
   }
   
   chart.setOption(option)
@@ -2039,25 +3156,188 @@ const renderPreviewChart = (containerId: string, chartType: string) => {
   console.log(`✅ 图表渲染完成: ${containerId}`)
 }
 
-// 生成管理力度分析HTML（保持向后兼容）
-const generateManagementHTML = () => {
-  const snapshot = reportData.value.managementSnapshot
-  if (!snapshot) return '<div>暂无管理力度分析数据</div>'
-  
-  return `
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-      <h3 style="margin: 0 0 15px 0;">管理力度智能分析</h3>
-      <div style="display: flex; align-items: center; gap: 20px;">
-        <div style="text-align: center;">
-          <div style="font-size: 36px; font-weight: bold; color: #409eff;">${snapshot.overallScore}分</div>
-          <div style="font-size: 14px; color: #666;">${snapshot.level}</div>
-        </div>
-        <div style="flex: 1;">
-          <p style="margin: 0; color: #333; line-height: 1.6;">${snapshot.description}</p>
-        </div>
-      </div>
-    </div>
-  `
+// 生成在岗人数图表选项
+const generateOnDutyChartOption = (activeStaff: any[]) => {
+  const deptMap = new Map()
+  activeStaff.forEach(staff => {
+    const dept = staff.department || '未知部门'
+    deptMap.set(dept, (deptMap.get(dept) || 0) + 1)
+  })
+
+  const data = Array.from(deptMap.entries()).map(([dept, count]) => ({
+    name: dept,
+    value: count
+  }))
+
+  return {
+    title: { text: '部门在岗人数分布', left: 'center', textStyle: { fontSize: 14 } },
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'category',
+      data: data.map(d => d.name),
+      axisLabel: { rotate: 45, fontSize: 10 }
+    },
+    yAxis: { type: 'value', name: '人数' },
+    series: [{
+      type: 'bar',
+      data: data.map(d => d.value),
+      itemStyle: { color: '#5470c6' }
+    }]
+  }
+}
+
+// 生成时效分析图表选项
+const generateTimingAnalysisChartOption = (assessmentData: any[]) => {
+  // 计算各部门平均延迟天数
+  const departmentTimingMap = new Map()
+
+  assessmentData.forEach(a => {
+    const dept = a.department || '未知部门'
+    if (!departmentTimingMap.has(dept)) {
+      departmentTimingMap.set(dept, { delays: [], totalCount: 0 })
+    }
+
+    const deptData = departmentTimingMap.get(dept)
+    deptData.totalCount++
+
+    if (a.assessDate && a.assessTime) {
+      const assessDateObj = new Date(a.assessDate)
+      const assessTimeObj = new Date(a.assessTime)
+      const delayDays = Math.round((assessTimeObj.getTime() - assessDateObj.getTime()) / (1000 * 60 * 60 * 24))
+      const actualDelay = Math.max(0, delayDays)
+      deptData.delays.push(actualDelay)
+    } else {
+      deptData.delays.push(3) // 默认延迟3天
+    }
+  })
+
+  const data = Array.from(departmentTimingMap.entries()).map(([dept, data]) => {
+    const avgDelayDays = data.delays.length > 0 ?
+      Math.round(data.delays.reduce((sum: number, delay: number) => sum + delay, 0) / data.delays.length) : 0
+    return { name: dept, value: avgDelayDays }
+  }).sort((a, b) => b.value - a.value)
+
+  return {
+    title: { text: '分部门录入时效分析', left: 'center', textStyle: { fontSize: 14 } },
+    tooltip: {
+      trigger: 'axis',
+      formatter: '{b}: {c}天'
+    },
+    xAxis: {
+      type: 'category',
+      data: data.map(d => d.name),
+      axisLabel: { rotate: 45, fontSize: 10 }
+    },
+    yAxis: { type: 'value', name: '平均延迟天数' },
+    series: [{
+      type: 'bar',
+      data: data.map(d => ({
+        value: d.value,
+        itemStyle: {
+          color: d.value <= 5 ? '#52c41a' : d.value <= 10 ? '#faad14' : '#ff4d4f'
+        }
+      }))
+    }]
+  }
+}
+
+// 生成时间分布对比图表选项
+const generateTimingComparisonChartOption = (assessmentData: any[]) => {
+  const assessmentDates = new Map()
+  const entryDates = new Map()
+
+  assessmentData.forEach(a => {
+    if (a.assessDate) {
+      const day = new Date(a.assessDate).getDate()
+      assessmentDates.set(day, (assessmentDates.get(day) || 0) + 1)
+    }
+    if (a.assessTime) {
+      const day = new Date(a.assessTime).getDate()
+      entryDates.set(day, (entryDates.get(day) || 0) + 1)
+    }
+  })
+
+  const days = Array.from({length: 31}, (_, i) => i + 1)
+
+  return {
+    title: { text: '考核与录入时间分布对比', left: 'center', textStyle: { fontSize: 14 } },
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['考核数量', '录入数量'], bottom: 0 },
+    xAxis: {
+      type: 'category',
+      data: days,
+      name: '日期'
+    },
+    yAxis: { type: 'value', name: '数量' },
+    series: [
+      {
+        name: '考核数量',
+        type: 'line',
+        data: days.map(day => assessmentDates.get(day) || 0),
+        itemStyle: { color: '#1890ff' }
+      },
+      {
+        name: '录入数量',
+        type: 'line',
+        data: days.map(day => entryDates.get(day) || 0),
+        itemStyle: { color: '#52c41a' }
+      }
+    ]
+  }
+}
+
+// 生成考核力度热力图选项
+const generateAssessmentIntensityHeatmapOption = (assessmentData: any[]) => {
+  // 简化版热力图数据
+  const departments = ['车队一', '车队二', '车队三', '调度科', '安全科']
+  const categories = ['安全问题', '服务问题', '操作问题', '管理问题', '其他问题']
+
+  const data: any[] = []
+  departments.forEach((dept, deptIndex) => {
+    categories.forEach((cat, catIndex) => {
+      const count = Math.floor(Math.random() * 20) + 1 // 模拟数据
+      data.push([deptIndex, catIndex, count])
+    })
+  })
+
+  return {
+    title: { text: '各部门考核力度热力图', left: 'center', textStyle: { fontSize: 14 } },
+    tooltip: {
+      position: 'top',
+      formatter: (params: any) => {
+        return `${departments[params.data[0]]}<br/>${categories[params.data[1]]}: ${params.data[2]}次`
+      }
+    },
+    grid: { height: '60%', top: '10%' },
+    xAxis: {
+      type: 'category',
+      data: departments,
+      splitArea: { show: true }
+    },
+    yAxis: {
+      type: 'category',
+      data: categories,
+      splitArea: { show: true }
+    },
+    visualMap: {
+      min: 0,
+      max: 20,
+      calculable: true,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: '5%',
+      inRange: { color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffcc', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'] }
+    },
+    series: [{
+      name: '考核次数',
+      type: 'heatmap',
+      data: data,
+      label: { show: true, fontSize: 10 },
+      emphasis: {
+        itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' }
+      }
+    }]
+  }
 }
 
 // 开始拖拽内容块
@@ -2162,6 +3442,32 @@ const loadLayoutSettings = () => {
 const resetLayoutSettings = () => {
   initializePreviewPages()
   ElMessage.success('布局已重置为默认设置')
+}
+
+// 恢复默认布局（清除保存的布局数据）
+const resetToDefaultLayout = () => {
+  ElMessageBox.confirm(
+    '确定要恢复默认布局吗？这将清除当前月份保存的所有布局设置，并应用最新的默认布局。',
+    '恢复默认布局',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    if (selectedMonth.value) {
+      // 清除保存的布局数据
+      const key = `layoutSettings_${selectedMonth.value}`
+      localStorage.removeItem(key)
+
+      // 重新初始化为默认布局
+      initializePreviewPages()
+
+      ElMessage.success('已恢复为最新的默认布局')
+    }
+  }).catch(() => {
+    // 用户取消
+  })
 }
 
 // 从预览导出PDF
@@ -2437,6 +3743,63 @@ const autoAdjustAllBlocks = async () => {
   }
 }
 
+// 优化图表显示
+const optimizeChartDisplay = () => {
+  console.log('🎯 开始优化图表显示...')
+
+  let optimizedCount = 0
+
+  previewPages.value.forEach(page => {
+    page.blocks.forEach(block => {
+      // 如果是图表类型的块，优化其显示
+      if (block.chartType) {
+        const originalHeight = block.height
+
+        // 根据图表类型设置最佳高度
+        const optimalHeights = {
+          'pie': 500,
+          'bar': 450,
+          'line': 450,
+          'scatter': 450,
+          'heatmap': 400
+        }
+
+        const newHeight = optimalHeights[block.chartType] || 450
+
+        if (block.height < newHeight) {
+          block.height = newHeight
+          optimizedCount++
+          console.log(`📊 优化图表 ${block.title}: ${originalHeight}px → ${newHeight}px`)
+        }
+      }
+    })
+
+    // 重新调整页面内容块位置，避免重叠
+    adjustPageBlockPositions(page)
+  })
+
+  if (optimizedCount > 0) {
+    ElMessage.success(`已优化 ${optimizedCount} 个图表的显示高度`)
+  } else {
+    ElMessage.info('所有图表显示已是最优状态')
+  }
+}
+
+// 调整单个页面内容块位置，避免重叠
+const adjustPageBlockPositions = (page: any) => {
+  const blocks = [...page.blocks].sort((a, b) => a.y - b.y)
+
+  for (let i = 1; i < blocks.length; i++) {
+    const currentBlock = blocks[i]
+    const previousBlock = blocks[i - 1]
+
+    const expectedY = previousBlock.y + previousBlock.height + 20
+    if (currentBlock.y < expectedY) {
+      currentBlock.y = expectedY
+    }
+  }
+}
+
 // 自动调整单个内容块大小
 const autoAdjustBlockSize = (block: any): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -2579,6 +3942,34 @@ const addNewPage = () => {
   }, 100)
 }
 
+// 添加文本框
+const addTextBox = () => {
+  if (previewPages.value.length === 0) {
+    ElMessage.warning('请先添加页面')
+    return
+  }
+
+  // 添加到第一页
+  const firstPage = previewPages.value[0]
+  const newTextBoxId = `textbox_${Date.now()}`
+
+  const newTextBox = {
+    id: newTextBoxId,
+    title: '新文本框',
+    content: generateTextBoxHTML('请双击编辑此文本框内容...'),
+    x: 50,
+    y: 100,
+    width: 300,
+    height: 80,
+    zIndex: 10,
+    isDragging: false,
+    blockType: 'textbox'
+  }
+
+  firstPage.blocks.push(newTextBox)
+  ElMessage.success('已添加新文本框，可拖拽到任意位置')
+}
+
 // 删除页面
 const deletePage = (pageId: number) => {
   const pageIndex = previewPages.value.findIndex(p => p.id === pageId)
@@ -2626,6 +4017,10 @@ const handleBlockAction = (command: string, block: any) => {
   if (command.startsWith('move-to-')) {
     const targetPageId = parseInt(command.replace('move-to-', ''))
     moveBlockToPage(block, targetPageId)
+  } else if (command === 'edit-textbox') {
+    editTextBox(block)
+  } else if (command === 'delete-textbox') {
+    deleteTextBox(block)
   }
 }
 
@@ -2671,6 +4066,52 @@ const moveBlockToPage = (block: any, targetPageId: number) => {
       targetPageElement.scrollIntoView({ behavior: 'smooth' })
     }
   }, 100)
+}
+
+// 编辑文本框
+const editTextBox = (block: any) => {
+  ElMessageBox.prompt('编辑文本框内容', '文本编辑', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputType: 'textarea',
+    inputValue: block.content.replace(/<[^>]*>/g, ''), // 移除HTML标签显示纯文本
+    inputPlaceholder: '请输入文本内容...'
+  }).then(({ value }) => {
+    if (value) {
+      block.content = generateTextBoxHTML(value)
+      ElMessage.success('文本框内容已更新')
+    }
+  }).catch(() => {
+    // 用户取消编辑
+  })
+}
+
+// 删除文本框
+const deleteTextBox = (block: any) => {
+  ElMessageBox.confirm(
+    `确定要删除文本框"${block.title}"吗？`,
+    '删除确认',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    // 找到包含此文本框的页面
+    const page = previewPages.value.find(p =>
+      p.blocks.some((b: any) => b.id === block.id)
+    )
+
+    if (page) {
+      const blockIndex = page.blocks.findIndex((b: any) => b.id === block.id)
+      if (blockIndex > -1) {
+        page.blocks.splice(blockIndex, 1)
+        ElMessage.success('文本框已删除')
+      }
+    }
+  }).catch(() => {
+    // 用户取消删除
+  })
 }
 
 // 获取页面中下一个可用的Y坐标
@@ -3166,56 +4607,39 @@ const getIndicatorTagType = (value: number): 'success' | 'primary' | 'warning' |
   return 'danger'
 }
 
-// 获取分值详细分解
-const getScoreBreakdown = () => {
-  if (!reportData.value.managementSnapshot?.indicators) return []
-  
-  const indicators = reportData.value.managementSnapshot.indicators
-  const breakdown = [
-    {
-      dimension: '标准一致性',
-      score: indicators['标准一致性'] || 0,
-      description: '科室与车队在问题识别和处理上的协调程度，重点关注方向一致性和合理差异性',
-      suggestion: indicators['标准一致性'] < 70 ? '统一考核标准，加强部门协调' : '保持标准一致性'
-    },
-    {
-      dimension: '考核覆盖率',
-      score: indicators['考核覆盖率'] || 0,
-      description: '考核覆盖在岗人员的比例，反映管理的全面性',
-      suggestion: indicators['考核覆盖率'] < 70 ? '提高考核频次，扩大覆盖面' : '维持良好覆盖率'
-    },
-    {
-      dimension: '管理严格度',
-      score: indicators['管理严格度'] || 0,
-      description: '相对于历史水平的严格程度，反映管理标准的变化',
-      suggestion: indicators['管理严格度'] < 70 ? '适度提高管理标准' : '保持合理严格度'
-    },
-    {
-      dimension: '问题识别力',
-      score: indicators['问题识别力'] || 0,
-      description: '发现和识别问题的能力，反映管理的敏感性',
-      suggestion: indicators['问题识别力'] < 70 ? '提升问题识别培训' : '保持识别能力'
-    },
-    {
-      dimension: '管理均衡性',
-      score: indicators['管理均衡性'] || 0,
-      description: '各部门管理力度的均衡程度，反映管理的公平性',
-      suggestion: indicators['管理均衡性'] < 70 ? '平衡各部门管理力度' : '保持管理均衡'
-    }
-  ]
-  
-  return breakdown
+// 新增：获取百分比
+const getPercentage = (value: number, total: number): string => {
+  if (total === 0) return '0.0'
+  return ((value / total) * 100).toFixed(1)
 }
 
-// 获取平均分
-const getAverageScore = () => {
-  if (!reportData.value.managementSnapshot?.indicators) return 0
-  
-  const indicators = reportData.value.managementSnapshot.indicators
-  const values = Object.values(indicators) as number[]
-  const sum = values.reduce((acc, val) => acc + val, 0)
-  return Math.round(sum / values.length)
+// 新增：获取分数样式类
+const getScoreClass = (score: number): string => {
+  if (score >= 90) return 'text-success'
+  if (score >= 80) return 'text-primary'
+  if (score >= 70) return 'text-warning'
+  return 'text-danger'
 }
+
+// 新增：获取延迟样式类
+const getDelayClass = (delayDays: number): string => {
+  if (delayDays <= 5) return 'text-success'   // 5天内为优秀（绿色）
+  if (delayDays <= 10) return 'text-warning'  // 10天内为一般（黄色）
+  return 'text-danger'                         // 10天以上为较差（红色）
+}
+
+// 新增：获取时效标签类型
+const getTimingTagType = (delayDays: number): 'success' | 'primary' | 'warning' | 'danger' => {
+  if (delayDays <= 5) return 'success'   // 5天内为优秀（绿色）
+  if (delayDays <= 10) return 'warning'  // 10天内为一般（黄色）
+  return 'danger'                        // 10天以上为较差（红色）
+}
+
+
+
+
+
+
 
 // 手动结论分析相关方法
 const saveConclusionAnalysis = async () => {
@@ -3360,6 +4784,188 @@ const loadSavedConclusion = () => {
   }
 }
 
+// 弹窗编辑器方法
+const openTextEditor = (field: string) => {
+  currentEditingField.value = field
+  editingText.value = chartExplanations.value[field] || ''
+  showTextEditor.value = true
+
+  // 重置格式状态
+  isBold.value = false
+  isItalic.value = false
+  selectedColor.value = '#333333'
+  selectedFontSize.value = '13px'
+
+  // 等待DOM更新后聚焦
+  nextTick(() => {
+    if (editorTextarea.value?.textarea) {
+      editorTextarea.value.textarea.focus()
+    }
+  })
+}
+
+const saveEdit = () => {
+  if (currentEditingField.value) {
+    chartExplanations.value[currentEditingField.value] = editingText.value
+
+    // 保存到localStorage
+    const key = `chart-explanation-${selectedMonth.value}-${currentEditingField.value}`
+    localStorage.setItem(key, editingText.value)
+
+    showTextEditor.value = false
+    ElMessage.success('图表说明已保存')
+  }
+}
+
+const cancelEdit = () => {
+  showTextEditor.value = false
+  editingText.value = ''
+  currentEditingField.value = ''
+}
+
+const clearContent = () => {
+  editingText.value = ''
+}
+
+// 获取当前选中的文本位置
+const updateSelection = () => {
+  if (editorTextarea.value?.textarea) {
+    const textarea = editorTextarea.value.textarea
+    selectionStart.value = textarea.selectionStart
+    selectionEnd.value = textarea.selectionEnd
+  }
+}
+
+// 在光标位置插入文本
+const insertTextAtCursor = (beforeText: string, afterText: string = '') => {
+  if (!editorTextarea.value?.textarea) return
+
+  const textarea = editorTextarea.value.textarea
+  const start = textarea.selectionStart
+  const end = textarea.selectionEnd
+  const selectedText = editingText.value.substring(start, end)
+
+  const newText = editingText.value.substring(0, start) +
+                  beforeText + selectedText + afterText +
+                  editingText.value.substring(end)
+
+  editingText.value = newText
+
+  // 设置新的光标位置
+  nextTick(() => {
+    const newCursorPos = start + beforeText.length + selectedText.length + afterText.length
+    textarea.setSelectionRange(newCursorPos, newCursorPos)
+    textarea.focus()
+  })
+}
+
+// 格式化功能
+const toggleBold = () => {
+  isBold.value = !isBold.value
+  if (isBold.value) {
+    insertTextAtCursor('<strong>', '</strong>')
+  }
+}
+
+const toggleItalic = () => {
+  isItalic.value = !isItalic.value
+  if (isItalic.value) {
+    insertTextAtCursor('<em>', '</em>')
+  }
+}
+
+const applyColor = (color: string) => {
+  if (color) {
+    insertTextAtCursor(`<span style="color: ${color};">`, '</span>')
+  }
+}
+
+const applyFontSize = (size: string) => {
+  if (size) {
+    insertTextAtCursor(`<span style="font-size: ${size};">`, '</span>')
+  }
+}
+
+// 键盘快捷键
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.ctrlKey || event.metaKey) {
+    switch (event.key.toLowerCase()) {
+      case 'b':
+        event.preventDefault()
+        toggleBold()
+        break
+      case 'i':
+        event.preventDefault()
+        toggleItalic()
+        break
+      case 's':
+        event.preventDefault()
+        saveEdit()
+        break
+    }
+  }
+}
+
+// 快速模板插入
+const insertTemplate = (type: string) => {
+  let template = ''
+
+  switch (type) {
+    case 'timing':
+      template = '时效分析：<strong>优秀</strong>（<span style="color: #52c41a;">5天内</span>）、<strong>一般</strong>（<span style="color: #faad14;">6-10天</span>）、<strong>较差</strong>（<span style="color: #ff4d4f;">10天以上</span>）。建议重点关注延迟较高的部门，优化录入流程。'
+      break
+    case 'quality':
+      template = '质量评估：通过<strong>数据分析</strong>发现，整体质量水平<span style="color: #52c41a;">良好</span>，但仍需在以下方面加强：<br/>1. 提高数据准确性<br/>2. 加强过程监控<br/>3. 完善反馈机制'
+      break
+    case 'trend':
+      template = '趋势分析：从图表可以看出，<strong>整体趋势</strong>呈现<span style="color: #1890ff;">稳定上升</span>态势。建议继续保持当前良好势头，同时关注<span style="color: #faad14;">波动较大</span>的时段。'
+      break
+    case 'suggestion':
+      template = '改进建议：<br/>1. <strong>短期目标</strong>：<span style="color: #fa541c;">立即整改</span>突出问题<br/>2. <strong>中期规划</strong>：建立长效机制<br/>3. <strong>长期愿景</strong>：实现<span style="color: #52c41a;">持续改进</span>'
+      break
+  }
+
+  if (template) {
+    // 在当前光标位置插入模板
+    if (editorTextarea.value?.textarea) {
+      const textarea = editorTextarea.value.textarea
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+
+      editingText.value = editingText.value.substring(0, start) +
+                         template +
+                         editingText.value.substring(end)
+
+      // 设置光标到插入内容的末尾
+      nextTick(() => {
+        const newPos = start + template.length
+        textarea.setSelectionRange(newPos, newPos)
+        textarea.focus()
+      })
+    }
+  }
+}
+
+// 计算预览HTML
+const previewHtml = computed(() => {
+  return editingText.value || '<span style="color: #999;">预览内容将在这里显示...</span>'
+})
+
+const loadSavedExplanations = () => {
+  if (!selectedMonth.value) return
+
+  Object.keys(chartExplanations.value).forEach(key => {
+    // 兼容新旧两种localStorage键名格式
+    const newKey = `chart-explanation-${selectedMonth.value}-${key}`
+    const oldKey = `chart_explanation_${selectedMonth.value}_${key}`
+
+    const saved = localStorage.getItem(newKey) || localStorage.getItem(oldKey)
+    if (saved) {
+      chartExplanations.value[key as keyof typeof chartExplanations.value] = saved
+    }
+  })
+}
+
 // 分页控制函数
 const addPageBreak = () => {
   const newId = `break-${Date.now()}`
@@ -3454,14 +5060,14 @@ const stopDragPageBreak = () => {
 // 初始化和自动定位功能
 const updateDefaultPageBreakPosition = () => {
   if (reportContent.value && pageBreakPositions.value.length > 0) {
-    // 查找管理力度分析区域
-    const managementSection = reportContent.value.querySelector('.management-analysis-section')
-    if (managementSection) {
-      const sectionBottom = (managementSection as HTMLElement).offsetTop + (managementSection as HTMLElement).offsetHeight + 20
-      
+    // 管理力度分析区域已移除，使用核心指标区域作为参考
+    const coreMetricsSection = reportContent.value.querySelector('.metrics-overview')
+    if (coreMetricsSection) {
+      const sectionBottom = (coreMetricsSection as HTMLElement).offsetTop + (coreMetricsSection as HTMLElement).offsetHeight + 20
+
       // 更新第一个分页点位置
       pageBreakPositions.value[0].top = sectionBottom
-      
+
       console.log(`🎯 已自动设置分页点位置: ${sectionBottom}px`)
     }
   }
@@ -3575,9 +5181,7 @@ const createA4PrintContainer = async (): Promise<HTMLElement | null> => {
     const coreMetricsSection = createPrintCoreMetrics()
     container.appendChild(coreMetricsSection)
     
-    // 2. 管理力度分析部分
-    const managementSection = createPrintManagementAnalysis()
-    container.appendChild(managementSection)
+    // 2. 管理力度分析部分已移除
     
     // 3. 图表部分（简化版）
     const chartsSection = await createPrintCharts()
@@ -3646,66 +5250,7 @@ const createPrintCoreMetrics = (): HTMLElement => {
   return section
 }
 
-// 创建打印版管理力度分析
-const createPrintManagementAnalysis = (): HTMLElement => {
-  const section = document.createElement('div')
-  section.style.cssText = 'margin-bottom: 30px; page-break-inside: avoid;'
-  
-  const header = document.createElement('h2')
-  header.style.cssText = 'font-size: 16px; font-weight: bold; margin: 0 0 15px 0;'
-  header.textContent = '二、管理力度智能分析'
-  section.appendChild(header)
-  
-  if (reportData.value.managementSnapshot) {
-    // 综合评分
-    const scoreDiv = document.createElement('div')
-    scoreDiv.style.cssText = 'margin-bottom: 15px; font-size: 14px;'
-    scoreDiv.innerHTML = `
-      <strong>综合评分：</strong>
-      <span style="font-size: 18px; color: #409eff; font-weight: bold;">
-        ${reportData.value.managementSnapshot.overallScore}分
-      </span>
-      <span style="color: #666;">（${reportData.value.managementSnapshot.level}）</span>
-    `
-    section.appendChild(scoreDiv)
-    
-    // 各维度得分表格
-    const table = document.createElement('table')
-    table.style.cssText = `
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      margin-top: 10px;
-    `
-    
-    const breakdown = getScoreBreakdown()
-    const thead = document.createElement('thead')
-    thead.innerHTML = `
-      <tr>
-        <th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">评估维度</th>
-        <th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5; width: 80px;">得分</th>
-        <th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">说明</th>
-      </tr>
-    `
-    table.appendChild(thead)
-    
-    const tbody = document.createElement('tbody')
-    breakdown.forEach((item: any) => {
-      const row = document.createElement('tr')
-      row.innerHTML = `
-        <td style="border: 1px solid #ddd; padding: 8px;">${item.dimension}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${item.score}分</td>
-        <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px;">${item.description}</td>
-      `
-      tbody.appendChild(row)
-    })
-    table.appendChild(tbody)
-    
-    section.appendChild(table)
-  }
-  
-  return section
-}
+
 
 // 创建打印版图表（图文并茂版）
 const createPrintCharts = async (): Promise<HTMLElement> => {
@@ -3869,7 +5414,7 @@ const createPrintDataSummary = (): HTMLElement => {
     <li><strong>人员规模：</strong>在岗人员 ${reportData.value.coreMetrics?.find((m: any) => m.key === 'onDuty')?.value || 0} 人</li>
     <li><strong>奖励水平：</strong>人均奖励 ${reportData.value.coreMetrics?.find((m: any) => m.key === 'avgReward')?.value || 0} 元</li>
     <li><strong>问题情况：</strong>总扣分 ${reportData.value.coreMetrics?.find((m: any) => m.key === 'totalDeductions')?.value || 0} 分</li>
-    <li><strong>管理评级：</strong>${reportData.value.managementSnapshot?.level || '待评估'} (${reportData.value.managementSnapshot?.overallScore || 0}分)</li>
+
   `
   container.appendChild(summaryList)
   
@@ -4239,6 +5784,8 @@ onMounted(async () => {
   // 如果成功选择了月份，则触发报表生成
   if (selectedMonth.value) {
     handleMonthChange();
+    // 加载保存的图表说明
+    loadSavedExplanations();
   }
 });
 </script>
@@ -4349,13 +5896,17 @@ onMounted(async () => {
 
 .metrics-overview {
   margin-bottom: 40px;
+  padding: 0 10px;
 }
 
 .metrics-overview h2 {
   color: #1f2937;
   font-size: 1.5rem;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #409eff;
+  padding-bottom: 10px;
 }
 
 .metric-card {
@@ -4368,6 +5919,11 @@ onMounted(async () => {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
 }
 
 .metric-card:hover {
@@ -4942,9 +6498,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
 }
 
-.chart-card[ref="managementRadarChart"] {
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-}
+
 
 .chart-card[ref="scoreDispersionChart"] {
   background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
@@ -5235,7 +6789,6 @@ onMounted(async () => {
   margin: 0 auto 20px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   position: relative;
-  page-break-after: always;
 }
 
 .page-header {
@@ -5275,7 +6828,8 @@ onMounted(async () => {
   cursor: move;
   transition: all 0.2s ease;
   border-radius: 4px;
-  overflow: hidden;
+  overflow: visible;
+  min-height: 400px;
 }
 
 .draggable-block:hover {
@@ -5318,7 +6872,9 @@ onMounted(async () => {
 .block-content {
   padding: 15px;
   background: white;
-  min-height: 50px;
+  min-height: 350px;
+  height: auto;
+  overflow: visible;
 }
 
 .block-content h1,
@@ -5360,6 +6916,25 @@ onMounted(async () => {
 
 .block-actions .el-button + .el-button {
   margin-left: 3px;
+}
+
+/* 图表容器特殊样式 */
+.draggable-block[data-chart-type] {
+  min-height: 450px;
+}
+
+.draggable-block[data-chart-type] .block-content {
+  min-height: 400px;
+  padding: 10px;
+}
+
+/* 确保图表内容完整显示 */
+.block-content canvas,
+.block-content svg,
+.block-content .echarts-container {
+  max-width: 100%;
+  height: auto !important;
+  min-height: 350px;
 }
 
 /* 自动调整按钮样式 */
@@ -5441,6 +7016,460 @@ onMounted(async () => {
 .preview-level {
   font-size: 11px;
   color: #999;
+}
+
+/* 新增：考核质量分析样式 */
+.quality-analysis-section {
+  margin-bottom: 30px;
+
+  h2 {
+    margin-bottom: 20px;
+    margin-top: 25px;
+  }
+}
+
+.timing-analysis-card,
+.timing-chart-card,
+.timing-table-card,
+.timing-comparison-card,
+.assessment-timing-card,
+.entry-timing-card,
+.assessment-intensity-card {
+  transition: all 0.3s ease;
+
+  .card-desc {
+    font-size: 12px;
+    color: #999;
+    margin-left: 10px;
+  }
+
+  .el-card__body {
+    padding: 15px 8px;
+  }
+}
+
+/* 为第二部分图表卡片添加hover效果 */
+.timing-analysis-card:hover,
+.timing-chart-card:hover,
+.timing-table-card:hover,
+.timing-comparison-card:hover,
+.assessment-timing-card:hover,
+.entry-timing-card:hover,
+.assessment-intensity-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.timing-comparison-chart {
+  width: 100%;
+  height: 350px;
+}
+
+.timing-chart {
+  width: 100%;
+  height: 350px;
+}
+
+.timing-calculation-note {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #409eff;
+
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #333;
+  }
+
+  p {
+    margin: 5px 0;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+
+    strong {
+      color: #333;
+    }
+  }
+}
+
+.peak-date {
+  font-weight: 600;
+  color: #409eff;
+}
+
+.peak-count {
+  font-weight: 600;
+  color: #e6a23c;
+}
+
+.pattern-text {
+  font-size: 12px;
+  color: #666;
+}
+
+.assessment-count {
+  font-weight: 600;
+  color: #67c23a;
+}
+
+.category-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.category-name {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.category-count {
+  font-size: 11px;
+  color: #999;
+}
+
+.focus-area {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+.quality-distribution {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.distribution-item {
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  border: 2px solid;
+}
+
+.distribution-item.excellent {
+  background: #f0f9ff;
+  border-color: #67c23a;
+}
+
+.distribution-item.good {
+  background: #f0f9ff;
+  border-color: #409eff;
+}
+
+.distribution-item.average {
+  background: #fefce8;
+  border-color: #e6a23c;
+}
+
+.distribution-item.poor {
+  background: #fef2f2;
+  border-color: #f56c6c;
+}
+
+.distribution-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.distribution-value {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.distribution-percent {
+  font-size: 14px;
+  color: #999;
+}
+
+.time-analysis {
+  padding: 20px;
+}
+
+.time-period {
+  margin-bottom: 15px;
+}
+
+.period-label {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.period-bar {
+  position: relative;
+  height: 30px;
+  background: #f5f5f5;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #409eff, #67c23a);
+  border-radius: 15px;
+  transition: width 0.3s ease;
+}
+
+.bar-text {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #333;
+  font-weight: 500;
+}
+
+.issue-analysis {
+  padding: 20px;
+}
+
+.issue-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.top-issues h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.issue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.issue-item {
+  display: grid;
+  grid-template-columns: 30px 1fr 60px 60px;
+  align-items: center;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  gap: 10px;
+}
+
+.issue-rank {
+  width: 24px;
+  height: 24px;
+  background: #409eff;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.issue-name {
+  font-size: 14px;
+  color: #333;
+}
+
+.issue-count {
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+.issue-percentage {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+
+/* 通用文本颜色类 */
+.text-success { color: #67c23a; }
+.text-primary { color: #409eff; }
+.text-warning { color: #e6a23c; }
+.text-danger { color: #f56c6c; }
+.text-info { color: #909399; }
+
+/* 图表说明编辑框优化 */
+.chart-explanation .el-textarea {
+  width: 100% !important;
+}
+
+.chart-explanation .el-textarea__inner {
+  min-height: 100px !important;
+  line-height: 1.6 !important;
+  font-size: 13px !important;
+  border-radius: 6px !important;
+  border: 1px solid #dcdfe6 !important;
+  transition: border-color 0.3s ease !important;
+}
+
+.chart-explanation .el-textarea__inner:focus {
+  border-color: #409eff !important;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1) !important;
+}
+
+.chart-explanation .el-textarea__inner:hover {
+  border-color: #c0c4cc !important;
+}
+
+/* 编辑按钮样式优化 */
+.chart-explanation .el-button--text {
+  color: #409eff !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  transition: all 0.3s ease !important;
+}
+
+.chart-explanation .el-button--text:hover {
+  background-color: rgba(64, 158, 255, 0.1) !important;
+  color: #337ecc !important;
+}
+
+/* 弹窗编辑器样式 */
+.text-editor-container {
+  padding: 0;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #e9ecef;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-section label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.editor-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.editor-input-section,
+.editor-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-input-section label,
+.editor-preview-section label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.preview-content {
+  min-height: 200px;
+  padding: 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-y: auto;
+}
+
+.editor-templates {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f0f9ff;
+  border-radius: 6px;
+  border: 1px solid #bae6fd;
+}
+
+.editor-templates label {
+  font-size: 13px;
+  color: #0369a1;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .editor-content {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .toolbar-section {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 768px) {
+  .editor-templates {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .editor-templates .el-button-group {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .editor-templates .el-button {
+    flex: 1;
+    min-width: 120px;
+  }
 }
 </style>
 

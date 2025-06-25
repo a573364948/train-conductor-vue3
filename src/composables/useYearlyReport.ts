@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useMainStore } from '@/stores'
 import { getScoreStandards, getScoreLevel } from '@/utils/scoreStandards'
 
@@ -34,6 +34,7 @@ export interface MonthlyStats {
   avgScore: number
   topIssue: string
   monthRank: number
+  participantCount: number // 新增：参与考核的人员数量
 }
 
 // 新增：年度对比分析接口
@@ -158,64 +159,230 @@ export function useYearlyReport() {
   // 获取指定年份的所有月份数据
   const getYearlyAssessmentData = (year: string) => {
     if (!mainStore.database?.assessmentDB) return []
-    
+
     const yearlyData: any[] = []
     const yearNum = parseInt(year)
-    
+
+    console.log(`🔍 查找${year}年的考核数据...`)
+
     // 遍历所有月份数据，筛选指定年份
     Object.entries(mainStore.database.assessmentDB).forEach(([monthKey, records]) => {
-      // 支持多种月份键格式：2024-1, 2024-01, 2024_1, 2024_01
-      const monthRegex = new RegExp(`^${yearNum}[-_](\\d{1,2})$`)
-      const match = monthKey.match(monthRegex)
-      
-      if (match && Array.isArray(records)) {
+      let match: RegExpMatchArray | null = null
+      let month: number = 0
+
+      // 支持多种月份键格式：
+      // 1. YYYY-MM 或 YYYY_MM 或 YYYY-M 或 YYYY_M
+      const standardMatch = monthKey.match(new RegExp(`^${yearNum}[-_](\\d{1,2})$`))
+      if (standardMatch) {
+        match = standardMatch
+        month = parseInt(match[1])
+      }
+
+      // 2. YYYYMM 格式
+      if (!match) {
+        const compactMatch = monthKey.match(new RegExp(`^${yearNum}(\\d{2})$`))
+        if (compactMatch) {
+          match = compactMatch
+          month = parseInt(match[1])
+        }
+      }
+
+      // 3. 其他可能的格式（如果键以年份开头）
+      if (!match && monthKey.startsWith(year.toString())) {
+        // 尝试从键中提取月份信息
+        const monthExtract = monthKey.match(/(\d{1,2})/)
+        if (monthExtract) {
+          const extractedMonth = parseInt(monthExtract[1])
+          if (extractedMonth >= 1 && extractedMonth <= 12) {
+            month = extractedMonth
+            match = [monthKey, extractedMonth.toString()]
+          }
+        }
+      }
+
+      if (match && Array.isArray(records) && records.length > 0) {
+        console.log(`✅ 找到${year}年${month}月数据: ${records.length}条记录 (键: ${monthKey})`)
         const monthData = records.map(record => ({
           ...record,
           monthKey,
-          month: parseInt(match[1])
+          month
         }))
         yearlyData.push(...monthData)
       }
     })
-    
+
+    console.log(`📊 ${year}年总计找到 ${yearlyData.length} 条考核记录`)
     return yearlyData
   }
 
   // 获取可用年份列表
   const getAvailableYears = () => {
     if (!mainStore.database?.assessmentDB) return []
-    
+
     const yearSet = new Set<string>()
     Object.keys(mainStore.database.assessmentDB).forEach(key => {
-      const yearMatch = key.match(/^(\d{4})[-_]/)
+      // 支持多种键格式：
+      // 1. YYYY-MM 或 YYYY_MM (标准格式)
+      // 2. YYYY-M 或 YYYY_M (单位数月份)
+      // 3. YYYYMM (紧凑格式)
+      // 4. 其他包含年份的格式
+      let yearMatch = key.match(/^(\d{4})[-_]/)
+
+      if (!yearMatch) {
+        // 尝试紧凑格式 YYYYMM
+        yearMatch = key.match(/^(\d{4})\d{2}$/)
+      }
+
+      if (!yearMatch) {
+        // 尝试任何以4位数字开头的格式
+        yearMatch = key.match(/^(\d{4})/)
+      }
+
       if (yearMatch) {
         yearSet.add(yearMatch[1])
+        console.log(`✅ 识别年份: ${yearMatch[1]} (来自键: ${key})`)
+      } else {
+        console.log(`❌ 无法识别年份: ${key}`)
       }
     })
-    
-    return Array.from(yearSet).sort((a, b) => parseInt(b) - parseInt(a))
+
+    const years = Array.from(yearSet).sort((a, b) => parseInt(b) - parseInt(a))
+    console.log(`📅 最终识别的年份列表: ${years.join(', ')}`)
+
+    return years
   }
 
-  // 计算年度核心指标
+  // 获取年度在岗总人员数（基于月度数据）
+  const getYearlyOnDutyPersonnel = (year: string): number => {
+    const yearNum = parseInt(year)
+    const monthlyDataForYear = mainStore.monthlyData?.filter(m => m.year === yearNum) || []
+    
+    if (monthlyDataForYear.length === 0) {
+      // 如果没有找到指定年份数据，使用最新月度数据的在岗人数
+      const latestData = mainStore.monthlyData?.[mainStore.monthlyData.length - 1]
+      if (latestData) {
+        return latestData.data.filter(p => p.isActive === true && p.status === '在岗').length
+      }
+      return 0
+    }
+    
+    // 计算年度平均在岗人数或最新月份在岗人数
+    const latestMonthData = monthlyDataForYear[monthlyDataForYear.length - 1]
+    return latestMonthData.data.filter(p => p.isActive === true && p.status === '在岗').length
+  }
+
+  // 计算考核覆盖率
+  const calculateAssessmentCoverageRate = (yearData: any[], year: string): number => {
+    const onDutyTotal = getYearlyOnDutyPersonnel(year)
+    if (onDutyTotal === 0) return 0
+    
+    const assessedPersons = new Set(yearData.map(r => r.conductorId)).size
+    return Math.round((assessedPersons / onDutyTotal) * 100)
+  }
+
+  // 计算发放奖金总金额（基于月度奖励数据）
+  const calculateTotalBonusAmount = (year: string): number => {
+    const yearNum = parseInt(year)
+    const monthlyDataForYear = mainStore.monthlyData?.filter(m => m.year === yearNum) || []
+    
+    if (monthlyDataForYear.length === 0) return 0
+    
+    let totalBonusAmount = 0
+    monthlyDataForYear.forEach(monthData => {
+      monthData.data.forEach(person => {
+        // 累计奖励金额（包括基本奖励和绩效奖励）
+        const rewardAmount = person.rewardAmount || 0
+        const rewardBase = person.rewardBase || 0
+        totalBonusAmount += (rewardAmount + rewardBase)
+      })
+    })
+    
+    return Math.round(totalBonusAmount)
+  }
+
+  // 计算在岗列车长数量
+  const calculateActiveConductors = (year: string): number => {
+    return getYearlyOnDutyPersonnel(year)
+  }
+
+  // 计算后备列车长数量（基于人员管理系统的后备状态）
+  const calculateBackupConductors = (year: string): number => {
+    // 从enhancedConductors中获取后备人员数量
+    if (mainStore.database?.enhancedConductors) {
+      return Object.values(mainStore.database.enhancedConductors)
+        .filter(conductor => conductor.status === '后备').length
+    }
+    
+    // 如果没有enhancedConductors数据，使用不在岗人员作为估算
+    const yearNum = parseInt(year)
+    const monthlyDataForYear = mainStore.monthlyData?.filter(m => m.year === yearNum) || []
+    
+    if (monthlyDataForYear.length === 0) {
+      const latestData = mainStore.monthlyData?.[mainStore.monthlyData.length - 1]
+      if (latestData) {
+        return latestData.data.filter(p => p.status === '不在岗').length
+      }
+      return 0
+    }
+    
+    const latestMonthData = monthlyDataForYear[monthlyDataForYear.length - 1]
+    return latestMonthData.data.filter(p => p.status === '不在岗').length
+  }
+
+  // 计算年度核心指标（完整版）
   const calculateYearlyCoreMetrics = (yearData: any[], year: string): YearlyMetric[] => {
     if (yearData.length === 0) {
       return [
         { key: 'totalAssessments', value: '0', label: '年度考核总次数', unit: '次', trend: '-', trendClass: 'trend-neutral' },
         { key: 'avgScore', value: '0', label: '年度平均得分', unit: '分', trend: '-', trendClass: 'trend-neutral' },
         { key: 'totalPersons', value: '0', label: '涉及人员总数', unit: '人', trend: '-', trendClass: 'trend-neutral' },
+        { key: 'assessmentCoverage', value: '0', label: '考核覆盖率', unit: '%', trend: '-', trendClass: 'trend-neutral' },
+        { key: 'totalBonusAmount', value: '0', label: '发放奖金金额', unit: '元', trend: '-', trendClass: 'trend-neutral' },
+        { key: 'activeConductors', value: '0', label: '在岗列车长', unit: '人', trend: '-', trendClass: 'trend-neutral' },
+        { key: 'backupConductors', value: '0', label: '后备列车长', unit: '人', trend: '-', trendClass: 'trend-neutral' },
+        { key: 'monthlyAssessments', value: '0', label: '月均考核次数', unit: '次', trend: '-', trendClass: 'trend-neutral' },
+        { key: 'specialInspections', value: '0', label: '专项检查次数', unit: '次', trend: '-', trendClass: 'trend-neutral' }
       ]
     }
 
     const totalAssessments = yearData.length
     const uniquePersons = new Set(yearData.map(r => r.conductorId)).size
     
-    // 计算平均得分
+    // 计算平均得分 (参考月度报表的计算方法)
     const scores = yearData.map(r => {
       const baseScore = r.baseScore || 100
       const totalDeduction = r.details?.reduce((sum: number, detail: any) => sum + (detail.deduction || 0), 0) || 0
       return baseScore + totalDeduction
     })
-    const avgScore = scores.reduce((sum, score) => sum + score, 0) / scores.length
+    const avgScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0
+
+    // 计算及格率 (参考月度报表)
+    const passingScore = 80 // 及格分数线
+    const passCount = scores.filter(score => score >= passingScore).length
+    const passRate = scores.length > 0 ? (passCount / scores.length) * 100 : 0
+
+    // 计算总扣分 (参考月度报表的扣分统计)
+    const totalDeductions = yearData.reduce((sum, r) => {
+      const deduction = r.details?.reduce((dSum: number, detail: any) => dSum + Math.abs(detail.deduction || 0), 0) || 0
+      return sum + deduction
+    }, 0)
+
+    // 计算人均扣分
+    const avgDeduction = uniquePersons > 0 ? totalDeductions / uniquePersons : 0
+
+    // 计算新指标
+    const assessmentCoverage = calculateAssessmentCoverageRate(yearData, year)
+    const totalBonusAmount = calculateTotalBonusAmount(year)
+    const activeConductors = calculateActiveConductors(year)
+    const backupConductors = calculateBackupConductors(year)
+    const monthlyAssessments = Math.round(totalAssessments / 12)
+    
+    // 统计专项检查次数（基于考核类型）
+    const specialInspections = yearData.filter(r => 
+      r.assessmentType === '专项检查' || 
+      r.category === '专项检查' ||
+      r.type === '专项'
+    ).length
 
     return [
       { 
@@ -241,6 +408,54 @@ export function useYearlyReport() {
         unit: '人', 
         trend: '↑ 5.6%', 
         trendClass: 'trend-up' 
+      },
+      {
+        key: 'assessmentCoverage',
+        value: assessmentCoverage.toString(),
+        label: '考核覆盖率',
+        unit: '%',
+        trend: assessmentCoverage >= 90 ? '↑ 优秀' : assessmentCoverage >= 80 ? '→ 良好' : '↓ 待提升',
+        trendClass: assessmentCoverage >= 90 ? 'trend-up' : assessmentCoverage >= 80 ? 'trend-neutral' : 'trend-down'
+      },
+      {
+        key: 'totalBonusAmount',
+        value: totalBonusAmount.toLocaleString(),
+        label: '发放奖金金额',
+        unit: '元',
+        trend: totalBonusAmount > 0 ? '↑ 7.8%' : '-',
+        trendClass: totalBonusAmount > 0 ? 'trend-up' : 'trend-neutral'
+      },
+      {
+        key: 'activeConductors',
+        value: activeConductors.toString(),
+        label: '在岗列车长',
+        unit: '人',
+        trend: '→ 稳定',
+        trendClass: 'trend-neutral'
+      },
+      {
+        key: 'backupConductors',
+        value: backupConductors.toString(),
+        label: '后备列车长',
+        unit: '人',
+        trend: '→ 稳定',
+        trendClass: 'trend-neutral'
+      },
+      {
+        key: 'monthlyAssessments',
+        value: monthlyAssessments.toString(),
+        label: '月均考核次数',
+        unit: '次',
+        trend: '↑ 8.3%',
+        trendClass: 'trend-up'
+      },
+      {
+        key: 'specialInspections',
+        value: specialInspections.toString(),
+        label: '专项检查次数',
+        unit: '次',
+        trend: specialInspections > 10 ? '↑ 15.2%' : '→ 稳定',
+        trendClass: specialInspections > 10 ? 'trend-up' : 'trend-neutral'
       }
     ]
   }
@@ -339,6 +554,16 @@ export function useYearlyReport() {
           return sum + Math.abs(r.details?.reduce((dSum: number, detail: any) => dSum + (detail.deduction || 0), 0) || 0)
         }, 0)
 
+        // 计算参与人数（去重）
+        const participantSet = new Set()
+        data.records.forEach(record => {
+          const personId = record.conductorId || record.personId || record.id
+          if (personId) {
+            participantSet.add(personId)
+          }
+        })
+        const participantCount = participantSet.size
+
         // 找出最常见的问题
         let topIssue = '无问题'
         let maxCount = 0
@@ -355,7 +580,8 @@ export function useYearlyReport() {
           totalDeductions,
           avgScore,
           topIssue,
-          monthRank: 0 // 将在后续排序中设置
+          monthRank: 0, // 将在后续排序中设置
+          participantCount // 新增：参与人数
         })
       } else {
         // 没有数据的月份
@@ -365,7 +591,8 @@ export function useYearlyReport() {
           totalDeductions: 0,
           avgScore: 0,
           topIssue: '无数据',
-          monthRank: 0
+          monthRank: 0,
+          participantCount: 0 // 新增：无数据时参与人数为0
         })
       }
     }
@@ -541,7 +768,7 @@ export function useYearlyReport() {
           actionRequired: true,
           suggestions: [
             '建立标准化的考核流程和评分标准',
-            '加强考核人员培训，提高评分一致性',
+            '加强考核人员指导，提高评分一致性',
             '分析高分和低分月份的管理差异',
             '建立管理质量监控机制'
           ]
@@ -636,7 +863,7 @@ export function useYearlyReport() {
           suggestions: [
             '对比分析该部门与其他部门的考核标准执行情况',
             '抽查该部门的考核记录，验证评分的客观性',
-            '统一全段考核标准，加强考核人员培训',
+            '统一全段考核标准，加强考核人员指导',
             '建立考核质量监督机制，确保标准一致性'
           ]
         })
@@ -689,7 +916,7 @@ export function useYearlyReport() {
           actionRequired: true,
           suggestions: [
             '制定全段统一的考核标准和评分细则',
-            '定期开展考核人员培训，提高评分一致性',
+            '定期开展考核人员指导，提高评分一致性',
             '建立考核质量抽查和校准机制',
             '设立考核标准执行情况的定期监测'
           ]
@@ -749,7 +976,7 @@ export function useYearlyReport() {
           actionRequired: true,
           suggestions: [
             '全面梳理管理制度和流程',
-            '加强人员培训和能力建设',
+            '加强人员指导和能力建设',
             '完善考核标准和执行机制',
             '建立管理改进的专项推进机制'
           ]
@@ -911,7 +1138,7 @@ export function useYearlyReport() {
         expectedAvgScore: Number(nextYearAvgScore.toFixed(1)),
         expectedAssessmentCount: nextYearAssessmentCount,
         riskFactors: ['管理标准可能需要调整', '人员流动性影响', '外部环境变化'],
-        opportunities: ['管理经验积累效应', '培训效果显现', '标准化程度提升']
+        opportunities: ['管理经验积累效应', '制度执行效果显现', '标准化程度提升']
       },
       quarterlyForecast: {
         q1: Number((nextYearAvgScore * 0.98).toFixed(1)),
@@ -1551,6 +1778,125 @@ export function useYearlyReport() {
     return progress
   }
 
+  // 新增：增强的数据分析函数 (参考月度报表)
+
+  /**
+   * 计算部门绩效分析 (参考月度报表的部门分析逻辑)
+   */
+  const calculateEnhancedDepartmentAnalysis = (yearData: any[]): any[] => {
+    if (yearData.length === 0) return []
+
+    const deptStats = new Map()
+
+    yearData.forEach(record => {
+      const dept = record.department || '未知部门'
+      if (!deptStats.has(dept)) {
+        deptStats.set(dept, {
+          scores: [],
+          count: 0,
+          deductions: [],
+          issues: new Map()
+        })
+      }
+
+      const deptData = deptStats.get(dept)
+
+      // 计算最终得分
+      const baseScore = record.baseScore || 100
+      const totalDeduction = record.details?.reduce((sum: number, detail: any) => sum + (detail.deduction || 0), 0) || 0
+      const finalScore = baseScore + totalDeduction
+
+      deptData.scores.push(finalScore)
+      deptData.count++
+      deptData.deductions.push(Math.abs(totalDeduction))
+
+      // 统计问题类型
+      record.details?.forEach((detail: any) => {
+        if (detail.deduction && detail.deduction < 0) {
+          const issue = detail.item || detail.category || '未知问题'
+          deptData.issues.set(issue, (deptData.issues.get(issue) || 0) + 1)
+        }
+      })
+    })
+
+    const results: any[] = []
+    deptStats.forEach((data, dept) => {
+      const avgScore = data.scores.reduce((sum: number, score: number) => sum + score, 0) / data.scores.length
+      const totalDeductions = data.deductions.reduce((sum: number, d: number) => sum + d, 0)
+      const passingScore = 80
+      const passRate = (data.scores.filter((score: number) => score >= passingScore).length / data.scores.length) * 100
+
+      // 找出最常见的问题
+      let topIssue = '无问题'
+      let maxCount = 0
+      data.issues.forEach((count, issue) => {
+        if (count > maxCount) {
+          maxCount = count
+          topIssue = issue
+        }
+      })
+
+      results.push({
+        department: dept,
+        avgScore: Math.round(avgScore * 10) / 10,
+        passRate: Math.round(passRate * 10) / 10,
+        count: data.count,
+        totalDeductions,
+        avgDeduction: Math.round((totalDeductions / data.count) * 10) / 10,
+        topIssue,
+        issueCount: maxCount
+      })
+    })
+
+    return results.sort((a, b) => b.avgScore - a.avgScore)
+  }
+
+  /**
+   * 计算问题分析统计 (参考月度报表的问题统计逻辑)
+   */
+  const calculateEnhancedIssueAnalysis = (yearData: any[]): any[] => {
+    const issueStats = new Map()
+
+    yearData.forEach(record => {
+      record.details?.forEach((detail: any) => {
+        if (detail.deduction && detail.deduction < 0) {
+          const issue = detail.item || detail.category || '未知问题'
+          const deduction = Math.abs(detail.deduction)
+
+          if (!issueStats.has(issue)) {
+            issueStats.set(issue, {
+              count: 0,
+              totalDeduction: 0,
+              departments: new Set(),
+              persons: new Set()
+            })
+          }
+
+          const issueData = issueStats.get(issue)
+          issueData.count++
+          issueData.totalDeduction += deduction
+          issueData.departments.add(record.department || '未知部门')
+          issueData.persons.add(record.conductorId || record.personId)
+        }
+      })
+    })
+
+    const results: any[] = []
+    issueStats.forEach((data, issue) => {
+      results.push({
+        issue,
+        count: data.count,
+        totalDeduction: Math.round(data.totalDeduction * 10) / 10,
+        avgDeduction: Math.round((data.totalDeduction / data.count) * 10) / 10,
+        departmentCount: data.departments.size,
+        personCount: data.persons.size,
+        frequency: data.count // 用于排序
+      })
+    })
+
+    return results.sort((a, b) => b.frequency - a.frequency).slice(0, 10) // 返回前10个问题
+  }
+
   return {
     getYearlyAssessmentData,
     getAvailableYears,
@@ -1568,6 +1914,9 @@ export function useYearlyReport() {
     generatePersonnelMatrix,
     getHistoricalYearData,
     calculateRiskIndicators,
-    generateTargetProgress
+    generateTargetProgress,
+    // 新增的增强分析函数
+    calculateEnhancedDepartmentAnalysis,
+    calculateEnhancedIssueAnalysis
   }
 } 

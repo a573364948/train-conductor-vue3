@@ -213,7 +213,7 @@ const departmentStats = computed(() => {
   activeData.value.forEach(conductor => {
     const dept = conductor.department
     if (!stats.has(dept)) {
-      stats.set(dept, { scores: [], avg: 0, max: 0, min: 100 })
+      stats.set(dept, { scores: [], avg: 0, max: 0, min: Infinity })
     }
     
     const deptStat = stats.get(dept)!
@@ -283,8 +283,7 @@ const updateCharts = () => {
     yAxis: {
       type: 'value',
       name: '得分',
-      min: 0,
-      max: 100
+      min: 0
     },
     series: [
       {
